@@ -1,0 +1,17 @@
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure.csproj.AssemblyReference.cache
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure.GeneratedMSBuildEditorConfig.editorconfig
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure.AssemblyInfoInputs.cache
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure.AssemblyInfo.cs
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure.csproj.CoreCompileInputs.cache
+E:\Store\Lawyers\Lawyers.InfraStructure\bin\Debug\net10.0\Lawyers.InfraStructure.deps.json
+E:\Store\Lawyers\Lawyers.InfraStructure\bin\Debug\net10.0\Lawyers.InfraStructure.dll
+E:\Store\Lawyers\Lawyers.InfraStructure\bin\Debug\net10.0\Lawyers.InfraStructure.pdb
+E:\Store\Lawyers\Lawyers.InfraStructure\bin\Debug\net10.0\Lawyers.Application.dll
+E:\Store\Lawyers\Lawyers.InfraStructure\bin\Debug\net10.0\Lawyers.Domain.dll
+E:\Store\Lawyers\Lawyers.InfraStructure\bin\Debug\net10.0\Lawyers.Application.pdb
+E:\Store\Lawyers\Lawyers.InfraStructure\bin\Debug\net10.0\Lawyers.Domain.pdb
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers..3BF6D40D.Up2Date
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure.dll
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\refint\Lawyers.InfraStructure.dll
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure.pdb
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\ref\Lawyers.InfraStructure.dll

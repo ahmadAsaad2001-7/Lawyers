@@ -1,0 +1,12 @@
+E:\Store\Lawyers\Lawyers.Domain\bin\Debug\net10.0\Lawyers.Domain.deps.json
+E:\Store\Lawyers\Lawyers.Domain\bin\Debug\net10.0\Lawyers.Domain.dll
+E:\Store\Lawyers\Lawyers.Domain\bin\Debug\net10.0\Lawyers.Domain.pdb
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.GeneratedMSBuildEditorConfig.editorconfig
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.AssemblyInfoInputs.cache
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.AssemblyInfo.cs
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.csproj.CoreCompileInputs.cache
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.dll
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\refint\Lawyers.Domain.dll
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.pdb
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\ref\Lawyers.Domain.dll
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.csproj.AssemblyReference.cache

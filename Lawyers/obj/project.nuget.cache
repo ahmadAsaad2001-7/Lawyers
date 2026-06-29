@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "G7U6zbGbexE=",
+  "success": true,
+  "projectFilePath": "E:\\Store\\Lawyers\\Lawyers\\Lawyers.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\tahaa\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.8\\microsoft.aspnetcore.openapi.10.0.8.nupkg.sha512",
+    "C:\\Users\\tahaa\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
