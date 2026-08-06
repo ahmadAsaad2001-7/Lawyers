@@ -15,3 +15,7 @@ E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure
 E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\refint\Lawyers.InfraStructure.dll
 E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure.pdb
 E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\ref\Lawyers.InfraStructure.dll
+E:\Store\Lawyers\Lawyers.InfraStructure\obj\Debug\net10.0\Lawyers.InfraStructure.sourcelink.json
+E:\Store\Lawyers\.build-check\Lawyers.Api\Lawyers.InfraStructure.deps.json
+E:\Store\Lawyers\.build-check\Lawyers.Api\Lawyers.InfraStructure.dll
+E:\Store\Lawyers\.build-check\Lawyers.Api\Lawyers.InfraStructure.pdb

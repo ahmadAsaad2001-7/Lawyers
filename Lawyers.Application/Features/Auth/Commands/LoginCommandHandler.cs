@@ -17,13 +17,13 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
 
     public async Task<AuthResponseDto> Handle(LoginCommand request, CancellationToken cancellationToken)
     {
-        
         var loginRequest = new LoginRequest(request.Email, request.Password);
-        
         var authResponse = await _authService.LoginAsync(loginRequest);
 
         return new AuthResponseDto
         {
+            UserId = authResponse.UserId,
+            UserName = authResponse.UserName,
             Token = authResponse.Token,
             Email = authResponse.Email,
             Role = authResponse.Role.ToString() 

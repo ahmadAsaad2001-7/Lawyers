@@ -7,6 +7,8 @@ public class LawyerDto
     public string Bio { get; set; } = string.Empty;
     public decimal HourlyRate { get; set; }
     public string Specialization { get; set; } = string.Empty;
+    public string State { get; set; } = string.Empty;
     public string City { get; set; } = string.Empty;
     public decimal AverageRating { get; set; }
+    public bool IsVerified { get; set; } 
 }

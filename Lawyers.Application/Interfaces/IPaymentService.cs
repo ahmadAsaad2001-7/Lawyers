@@ -8,7 +8,7 @@ public interface IPaymentService
     /// Step 1 (Booking): Creates a payment intent that AUTHORIZES the card but DOES NOT CHARGE IT.
     /// This supports the "Escrow" requirement.
     /// </summary>
-    Task<PaymentIntentResponseDto> CreatePaymentIntentAsync(decimal amount, string currency, int consultationId, string customerEmail);
+    Task<PaymentIntentResponseDto> CreatePaymentIntentAsync(InitiatePaymentDto dto);
 
     /// <summary>
     /// Step 2 (Start Call): Captures the previously authorized funds. 

@@ -19,11 +19,32 @@ public class LawyersController : ControllerBase
     }
 
     [AllowAnonymous]
-    [HttpGet]
+    [HttpGet("search")] // Resolves to: GET /api/Lawyers/search
     public async Task<IActionResult> Search([FromQuery] GetLawyersQuery query)
     {
-        // MediatR automatically routes this to GetLawyersQueryHandler
         var result = await _mediator.Send(query);
+        return Ok(result);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("all")] // Resolves to: GET /api/Lawyers/all
+    public async Task<IActionResult> GetAllLawyers([FromQuery] GetAllLawyerQuery query)
+    {
+        // 💡 BONUS FIX: You were missing the 'await' keyword here!
+        var result = await _mediator.Send(query);
+        return Ok(result);
+    }
+    [AllowAnonymous]
+    [HttpGet("{id}")] // Resolves to: GET /api/Lawyers/{id}
+    public async Task<IActionResult> GetLawyerById(int id)
+    {
+        var result = await _mediator.Send(new GetLawyerByIdQuery(id));
+        
+        if (result == null)
+        {
+            return NotFound(new { message = "المحامي غير موجود أو غير موثق بعد." });
+        }
+
         return Ok(result);
     }
 }

@@ -1,132 +1,119 @@
-﻿using System.Net.Http.Json;
-using System.Text.Json.Serialization;
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
 using Lawyers.Application.DTOs;
+using Lawyers.Application.Enums;
 using Lawyers.Application.Interfaces;
 using Lawyers.InfraStructure.Helpers;
 using Microsoft.Extensions.Options;
 
-namespace Lawyers.InfraStructure.Services; // ✅ Moved to Services namespace
+namespace Lawyers.InfraStructure.Services;
 
 public class KashierPaymentService : IPaymentService
 {
-    private readonly HttpClient _httpClient;
     private readonly KashierOptions _options;
 
     public KashierPaymentService(HttpClient httpClient, IOptions<KashierOptions> options)
     {
-        _httpClient = httpClient;
         _options = options.Value;
 
-        _httpClient.BaseAddress = new Uri(_options.BaseUrl);
-        
-        // ⚠️ SENIOR TWEAK: Check Kashier docs. 
-        // If they expect "Authorization: Bearer YOUR_KEY", use the two-parameter constructor.
-        // If they expect "Authorization: YOUR_KEY", use the single-parameter constructor.
-        _httpClient.DefaultRequestHeaders.Authorization = 
-            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _options.ApiKey); 
+        var baseUrl = _options.BaseUrl;
+        if (!baseUrl.EndsWith('/'))
+        {
+            baseUrl += "/";
+        }
+
+        httpClient.BaseAddress = new Uri(baseUrl);
     }
 
-    public async Task<PaymentIntentResponseDto> CreatePaymentIntentAsync(
-        decimal amount, string currency, int consultationId, string customerEmail)
+    public Task<PaymentIntentResponseDto> CreatePaymentIntentAsync(InitiatePaymentDto dto)
     {
-        // ⚠️ SENIOR TWEAK: Double-check Kashier's docs! 
-        // Stripe requires cents (amount * 100). Some MENA gateways require exact decimals (150.50).
-        // If your test payments fail with "Invalid Amount", change this to just: Amount = amount
-        long amountInPiastres = (long)(amount * 100);
+        ValidateKashierSettings();
 
-        var payload = new KashierOrderRequest
+        var merchantOrderId = dto.ConsultationId.ToString(CultureInfo.InvariantCulture);
+        var amount = dto.Amount.ToString("0.##", CultureInfo.InvariantCulture);
+        var hashPath = $"/?payment={_options.MerchantId}.{merchantOrderId}.{amount}.{dto.Currency}";
+        var hash = GenerateKashierHash(hashPath, _options.ApiKey);
+
+        var queryParams = new Dictionary<string, string?>
         {
-            MerchantId = _options.MerchantId,
-            Amount = amountInPiastres,
-            Currency = currency,
-            MerchantOrderId = consultationId.ToString(), // Crucial for Webhooks/Background jobs!
-            CustomerEmail = customerEmail,
-            Operation = "Authorize" // Escrow hold
+            ["merchantId"] = _options.MerchantId,
+            ["orderId"] = merchantOrderId,
+            ["amount"] = amount,
+            ["currency"] = dto.Currency,
+            ["mode"] = _options.Mode,
+            ["hash"] = hash,
+            ["merchantRedirect"] = _options.MerchantRedirectUrl,
+            ["serverWebhook"] = _options.ServerWebhookUrl,
+            ["allowedMethods"] = MapAllowedMethods(dto.Channel),
+            ["display"] = "ar",
+            ["redirectMethod"] = "post",
+            ["customerEmail"] = dto.CustomerEmail,
+            ["customerMobile"] = dto.WalletPhoneNumber,
+            ["customerName"] = "Consultation Client"
         };
 
-        var response = await _httpClient.PostAsJsonAsync("orders", payload);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            throw new ApplicationException($"Kashier Order creation failed: {error}");
-        }
+        var checkoutUrl = BuildUrl(_options.CheckoutUrl, queryParams);
 
-        var result = await response.Content.ReadFromJsonAsync<KashierOrderResponse>();
-
-        // ✅ SENIOR TWEAK: Safe null checking instead of using the dangerous '!' operator
-        if (result == null)
-        {
-            throw new ApplicationException("Kashier returned a success status, but the response body was empty or malformed.");
-        }
-
-        return new PaymentIntentResponseDto(
-            PaymentIntentId: result.OrderId,
-            ClientSecret: result.PaymentToken, // Note: 'ClientSecret' is a Stripe term, but fine to use here as a generic token holder
-            Amount: amount,
-            Currency: currency
-        );
+        return Task.FromResult(new PaymentIntentResponseDto(
+            PaymentIntentId: merchantOrderId,
+            ClientSecret: checkoutUrl,
+            Amount: dto.Amount,
+            Currency: dto.Currency
+        ));
     }
 
-    public async Task<bool> CapturePaymentAsync(string paymentIntentId)
+    public Task<bool> CapturePaymentAsync(string paymentIntentId) => Task.FromResult(true);
+
+    public Task<bool> CancelPaymentAsync(string paymentIntentId) => Task.FromResult(true);
+
+    public Task<PaymentGatewayStatus> GetPaymentStatusAsync(string transactionId)
     {
-        var response = await _httpClient.PostAsJsonAsync($"transactions/{paymentIntentId}/capture", new { });
-        return response.IsSuccessStatusCode;
+        return Task.FromResult(PaymentGatewayStatus.Pending);
     }
 
-    public async Task<bool> CancelPaymentAsync(string paymentIntentId)
+    private static string MapAllowedMethods(PaymentChannel channel)
     {
-        var response = await _httpClient.PostAsJsonAsync($"transactions/{paymentIntentId}/void", new { });
-        return response.IsSuccessStatusCode;
-    }
-
-    // ✅ THE MISSING PIECE: Required for the Hangfire Background Worker
-    public async Task<PaymentGatewayStatus> GetPaymentStatusAsync(string transactionId)
-    {
-        var response = await _httpClient.GetAsync($"transactions/{transactionId}");
-        
-        if (!response.IsSuccessStatusCode)
+        return channel switch
         {
-            return PaymentGatewayStatus.Failed; // Or throw an exception depending on your preference
-        }
-
-        var result = await response.Content.ReadFromJsonAsync<KashierTransactionStatusResponse>();
-
-        if (result == null) return PaymentGatewayStatus.Pending;
-
-        // Map Kashier's specific string statuses to our clean, provider-agnostic enum
-        return result.Status?.ToUpper() switch
-        {
-            "SUCCESS" or "CAPTURED" => PaymentGatewayStatus.Captured,
-            "AUTHORIZED" or "PENDING" => PaymentGatewayStatus.Authorized,
-            "FAILED" or "DECLINED" => PaymentGatewayStatus.Failed,
-            "VOIDED" or "REFUNDED" => PaymentGatewayStatus.Voided,
-            _ => PaymentGatewayStatus.Pending
+            PaymentChannel.Card => "card",
+            PaymentChannel.MobileWallet => "wallet",
+            PaymentChannel.InstaPay => "card,wallet",
+            _ => "card,wallet"
         };
     }
-}
 
-#region Kashier Internal Models
-internal class KashierOrderRequest
-{
-    [JsonPropertyName("merchantId")] public string MerchantId { get; set; } = string.Empty;
-    [JsonPropertyName("amount")] public long Amount { get; set; }
-    [JsonPropertyName("currency")] public string Currency { get; set; } = "EGP";
-    [JsonPropertyName("merchantOrderId")] public string MerchantOrderId { get; set; } = string.Empty;
-    [JsonPropertyName("customerEmail")] public string CustomerEmail { get; set; } = string.Empty;
-    [JsonPropertyName("operation")] public string Operation { get; set; } = "Authorize";
-}
+    private static string GenerateKashierHash(string path, string apiKey)
+    {
+        using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(apiKey));
+        var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(path));
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
+    }
 
-internal class KashierOrderResponse
-{
-    [JsonPropertyName("orderId")] public string OrderId { get; set; } = string.Empty;
-    [JsonPropertyName("paymentToken")] public string PaymentToken { get; set; } = string.Empty;
-}
+    private static string BuildUrl(string baseUrl, IReadOnlyDictionary<string, string?> queryParams)
+    {
+        var normalizedBaseUrl = string.IsNullOrWhiteSpace(baseUrl)
+            ? "https://checkout.kashier.io/"
+            : baseUrl;
 
-// ✅ Added for the Background Worker
-internal class KashierTransactionStatusResponse
-{
-    [JsonPropertyName("status")] public string? Status { get; set; }
-    [JsonPropertyName("amount")] public decimal? Amount { get; set; }
+        var separator = normalizedBaseUrl.Contains('?') ? '&' : '?';
+        var query = string.Join("&", queryParams
+            .Where(item => !string.IsNullOrWhiteSpace(item.Value))
+            .Select(item => $"{Uri.EscapeDataString(item.Key)}={Uri.EscapeDataString(item.Value!)}"));
+
+        return $"{normalizedBaseUrl}{separator}{query}";
+    }
+
+    private void ValidateKashierSettings()
+    {
+        if (string.IsNullOrWhiteSpace(_options.MerchantId))
+        {
+            throw new InvalidOperationException("Kashier MerchantId is not configured.");
+        }
+
+        if (string.IsNullOrWhiteSpace(_options.ApiKey))
+        {
+            throw new InvalidOperationException("Kashier ApiKey is not configured.");
+        }
+    }
 }
-#endregion

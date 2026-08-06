@@ -1,4 +1,5 @@
 ﻿using Hangfire;
+using Hangfire.Dashboard;
 
 namespace Lawyers.Api.StartUp;
 
@@ -16,8 +17,20 @@ public static class HangFireConfiguration
 
     public static void HangFireBuild(this WebApplication app)
     {
-        app.UseHangfireDashboard("/hangfire");    
-        
+        app.UseHangfireDashboard("/hangfire", new DashboardOptions
+        {
+            Authorization = new[] { new HangfireAuthorizationFilter() }
+        });
+    }
+
+    public class HangfireAuthorizationFilter : IDashboardAuthorizationFilter
+    {
+        public bool Authorize(DashboardContext context)
+        {
+            var httpContext = context.GetHttpContext();
+            return httpContext.User.Identity?.IsAuthenticated == true
+                   && httpContext.User.IsInRole("Admin"); // adjust to your role scheme
+        }
+    }
     }
     
-}

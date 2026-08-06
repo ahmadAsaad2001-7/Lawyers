@@ -1,4 +1,5 @@
-﻿using Lawyers.Domain.Entities;
+using Lawyers.Domain.Entities;
+using System.Data;
 
 namespace Lawyers.Application.Interfaces;
 
@@ -10,7 +11,9 @@ public interface IUnitOfWork : IDisposable
     IRepository<Consultation> Consultations { get; }
     IRepository<Payment> Payments { get; }
     IRepository<Message> Messages { get; }
-    Task BeginTransactionAsync();
+    IRepository<FreeConsultationMessage> FreeMessages { get; }
+    IRepository<LawyerPost> LawyerPosts { get; }
+    Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted);
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
     

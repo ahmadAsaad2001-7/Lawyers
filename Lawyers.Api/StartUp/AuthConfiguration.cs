@@ -1,7 +1,9 @@
-﻿using Lawyers.Domain.Entities;
+﻿using System.Text;
+using Lawyers.Domain.Entities;
 using Lawyers.InfraStructure.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
 
 namespace Lawyers.Api.StartUp;
 
@@ -12,7 +14,7 @@ public static class AuthConfiguration
         
         // 1. Configure JWT Settings (Read from appsettings.json)
         var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-        var key = System.Text.Encoding.ASCII.GetBytes(jwtSettings["SecretKey"]);
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]));
 
 // 2. Add Identity
         builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
@@ -20,6 +22,7 @@ public static class AuthConfiguration
                 options.Password.RequireDigit = true;
                 options.Password.RequiredLength = 7;
                 options.User.RequireUniqueEmail = true;
+                options.SignIn.RequireConfirmedEmail = true;  
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
@@ -34,16 +37,32 @@ public static class AuthConfiguration
             {
                 options.RequireHttpsMetadata = false; // Set to true in Production!
                 options.SaveToken = true;
-                options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(key),
+                    IssuerSigningKey = key,
                     ValidateIssuer = true,
                     ValidIssuer = jwtSettings["Issuer"],
                     ValidateAudience = true,
                     ValidAudience = jwtSettings["Audience"],
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero // Remove the default 5-minute delay
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        var path = context.HttpContext.Request.Path;
+
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            path.StartsWithSegments("/hubs/consultations"))
+                        {
+                            context.Token = accessToken;
+                        }
+
+                        return Task.CompletedTask;
+                    }
                 };
             });
         

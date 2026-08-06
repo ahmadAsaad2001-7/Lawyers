@@ -5,6 +5,7 @@ namespace Lawyers.Application.Features.Lawyers.Queries;
 
 public record GetLawyersQuery : IRequest<PagedResult<LawyerDto>>
 {
+    public string? State { get; set; }
     public string? City { get; set; }
     public string? Specialization { get; set; }
     public decimal? MaxHourlyRate { get; set; }

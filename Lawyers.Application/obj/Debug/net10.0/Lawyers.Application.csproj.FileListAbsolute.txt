@@ -13,3 +13,7 @@ E:\Store\Lawyers\Lawyers.Application\bin\Debug\net10.0\Lawyers.Domain.dll
 E:\Store\Lawyers\Lawyers.Application\bin\Debug\net10.0\Lawyers.Domain.pdb
 E:\Store\Lawyers\Lawyers.Application\obj\Debug\net10.0\Lawyers.Application.csproj.AssemblyReference.cache
 E:\Store\Lawyers\Lawyers.Application\obj\Debug\net10.0\Lawyers..0759EDD6.Up2Date
+E:\Store\Lawyers\Lawyers.Application\obj\Debug\net10.0\Lawyers.Application.sourcelink.json
+E:\Store\Lawyers\.build-check\Lawyers.Api\Lawyers.Application.deps.json
+E:\Store\Lawyers\.build-check\Lawyers.Api\Lawyers.Application.dll
+E:\Store\Lawyers\.build-check\Lawyers.Api\Lawyers.Application.pdb

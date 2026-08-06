@@ -8,7 +8,7 @@ public class User : IdentityUser<int>
 {
     
     public Roles Role { get; set; }
-    
+    public string ProfileImageUrl { get; set; } = string.Empty;
     public bool IsDeleted { get; set; } = false;
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
     

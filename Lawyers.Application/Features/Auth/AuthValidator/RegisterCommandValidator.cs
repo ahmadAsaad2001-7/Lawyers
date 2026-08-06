@@ -10,5 +10,8 @@ public class RegisterCommandValidator : AbstractValidator<RegisterCommand>
         RuleFor(x => x.Email).NotEmpty().EmailAddress();
         RuleFor(x => x.Password).NotEmpty().MinimumLength(8).WithMessage("Password must be at least 8 characters.");
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(100);
+        RuleFor(x=>x.Role).NotNull().WithMessage("Role cannot be null.");
+
+        
     }
 }

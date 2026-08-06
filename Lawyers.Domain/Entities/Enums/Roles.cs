@@ -2,8 +2,8 @@
 
 public enum Roles
 {
-    Lawyer,
-    Admin,
-    Client
+    Lawyer=1,
+    Client=2,
+    Admin=3
     
 }

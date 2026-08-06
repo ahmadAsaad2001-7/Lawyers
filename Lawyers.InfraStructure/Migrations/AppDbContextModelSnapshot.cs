@@ -146,6 +146,150 @@ namespace Lawyers.InfraStructure.Migrations
                     b.ToTable("Consultations", (string)null);
                 });
 
+            modelBuilder.Entity("Lawyers.Domain.Entities.FreeConsultationMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<bool>("IsRepliedTo")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("LawyerId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LawyerProfileId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SenderEmail")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("SenderIpAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)");
+
+                    b.Property<string>("SenderName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SenderPhone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LawyerId");
+
+                    b.HasIndex("LawyerProfileId");
+
+                    b.ToTable("FreeConsultationMessages", (string)null);
+                });
+
+            modelBuilder.Entity("Lawyers.Domain.Entities.LawyerPost", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CommentCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("CoverImageUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DeletedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Excerpt")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsFeatured")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("LastModifiedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LawyerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LikeCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ViewCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsFeatured");
+
+                    b.HasIndex("LawyerId");
+
+                    b.HasIndex("PublishedAt")
+                        .IsDescending();
+
+                    b.ToTable("LawyerPosts", (string)null);
+                });
+
             modelBuilder.Entity("Lawyers.Domain.Entities.LawyerProfile", b =>
                 {
                     b.Property<int>("Id")
@@ -199,9 +343,19 @@ namespace Lawyers.InfraStructure.Migrations
                     b.Property<int?>("LastModifiedByUserId")
                         .HasColumnType("int");
 
-                    b.Property<byte[]>("RowVersion")
+                    b.Property<string>("LawFirmName")
                         .IsRequired()
-                        .HasColumnType("varbinary(max)");
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ProfileImageUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<string>("Specialization")
                         .IsRequired()
@@ -335,13 +489,13 @@ namespace Lawyers.InfraStructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("StripePaymentIntentId")
+                    b.Property<DateTime?>("TransactionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("TransactionId")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
-
-                    b.Property<DateTime?>("TransactionDate")
-                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -353,6 +507,34 @@ namespace Lawyers.InfraStructure.Migrations
                     b.HasIndex("LawyerId");
 
                     b.ToTable("Payments", (string)null);
+                });
+
+            modelBuilder.Entity("Lawyers.Domain.Entities.PostAttachment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("FileType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FileUrl")
+                        .IsRequired()
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<int>("LawyerPostId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LawyerPostId");
+
+                    b.ToTable("PostAttachments", (string)null);
                 });
 
             modelBuilder.Entity("Lawyers.Domain.Entities.User", b =>
@@ -407,6 +589,10 @@ namespace Lawyers.InfraStructure.Migrations
 
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("bit");
+
+                    b.Property<string>("ProfileImageUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Role")
                         .IsRequired()
@@ -609,6 +795,32 @@ namespace Lawyers.InfraStructure.Migrations
                     b.Navigation("Lawyer");
                 });
 
+            modelBuilder.Entity("Lawyers.Domain.Entities.FreeConsultationMessage", b =>
+                {
+                    b.HasOne("Lawyers.Domain.Entities.LawyerProfile", "Lawyer")
+                        .WithMany()
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Lawyers.Domain.Entities.LawyerProfile", null)
+                        .WithMany("FreeMessages")
+                        .HasForeignKey("LawyerProfileId");
+
+                    b.Navigation("Lawyer");
+                });
+
+            modelBuilder.Entity("Lawyers.Domain.Entities.LawyerPost", b =>
+                {
+                    b.HasOne("Lawyers.Domain.Entities.LawyerProfile", "Lawyer")
+                        .WithMany("Posts")
+                        .HasForeignKey("LawyerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Lawyer");
+                });
+
             modelBuilder.Entity("Lawyers.Domain.Entities.LawyerProfile", b =>
                 {
                     b.HasOne("Lawyers.Domain.Entities.User", "User")
@@ -711,6 +923,17 @@ namespace Lawyers.InfraStructure.Migrations
                     b.Navigation("Lawyer");
                 });
 
+            modelBuilder.Entity("Lawyers.Domain.Entities.PostAttachment", b =>
+                {
+                    b.HasOne("Lawyers.Domain.Entities.LawyerPost", "LawyerPost")
+                        .WithMany("Attachments")
+                        .HasForeignKey("LawyerPostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LawyerPost");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole<int>", null)
@@ -765,6 +988,18 @@ namespace Lawyers.InfraStructure.Migrations
             modelBuilder.Entity("Lawyers.Domain.Entities.Consultation", b =>
                 {
                     b.Navigation("Payment");
+                });
+
+            modelBuilder.Entity("Lawyers.Domain.Entities.LawyerPost", b =>
+                {
+                    b.Navigation("Attachments");
+                });
+
+            modelBuilder.Entity("Lawyers.Domain.Entities.LawyerProfile", b =>
+                {
+                    b.Navigation("FreeMessages");
+
+                    b.Navigation("Posts");
                 });
 
             modelBuilder.Entity("Lawyers.Domain.Entities.User", b =>

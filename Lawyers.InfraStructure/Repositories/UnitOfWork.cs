@@ -1,6 +1,8 @@
-﻿using Lawyers.Application.Interfaces;
+using Lawyers.Application.Interfaces;
 using Lawyers.Domain.Entities;
 using Lawyers.InfraStructure.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace Lawyers.Infrastructure.Data.Repositories;
 
@@ -8,12 +10,14 @@ public class UnitOfWork : IUnitOfWork
 {
     private readonly AppDbContext _context;
     private Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? _currentTransaction;
-    private IRepository<User> _users;
-    private IRepository<ClientProfile> _clientProfiles;
-    private IRepository<LawyerProfile> _lawyerProfiles;
-    private IRepository<Consultation> _consultations;
-    private IRepository<Payment> _payments;
-    private IRepository<Message> _messages;
+    private IRepository<User>? _users;
+    private IRepository<ClientProfile>? _clientProfiles;
+    private IRepository<LawyerProfile>? _lawyerProfiles;
+    private IRepository<Consultation>? _consultations;
+    private IRepository<Payment>? _payments;
+    private IRepository<Message>? _messages;
+    private IRepository<FreeConsultationMessage> _freeConsultationMessage;
+    private IRepository<LawyerPost> _LawyerPosts;
 
     public UnitOfWork(AppDbContext context)
     {
@@ -26,17 +30,30 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<Consultation> Consultations => _consultations ??= new Repository<Consultation>(_context);
     public IRepository<Payment> Payments => _payments ??= new Repository<Payment>(_context);
     public IRepository<Message> Messages => _messages ??= new Repository<Message>(_context);
-    public async Task BeginTransactionAsync()
+    public IRepository<FreeConsultationMessage> FreeMessages => _freeConsultationMessage??= new Repository<FreeConsultationMessage>(_context);
+    public IRepository<LawyerPost> LawyerPosts => _LawyerPosts??=new Repository<LawyerPost>(_context);
+
+    public async Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
     {
-        _currentTransaction = await _context.Database.BeginTransactionAsync();
+        if (_currentTransaction != null)
+        {
+            throw new InvalidOperationException("A database transaction is already active for this unit of work.");
+        }
+
+        _currentTransaction = await _context.Database.BeginTransactionAsync(isolationLevel);
     }
 
     public async Task CommitTransactionAsync()
     {
         try
         {
+            if (_currentTransaction == null)
+            {
+                throw new InvalidOperationException("Cannot commit because no database transaction is active.");
+            }
+
             await _context.SaveChangesAsync();
-            if (_currentTransaction != null) await _currentTransaction.CommitAsync();
+            await _currentTransaction.CommitAsync();
         }
         catch
         {
@@ -47,7 +64,7 @@ public class UnitOfWork : IUnitOfWork
         {
             if (_currentTransaction != null)
             {
-                _currentTransaction.Dispose();
+                await _currentTransaction.DisposeAsync();
                 _currentTransaction = null;
             }
         }
@@ -58,18 +75,20 @@ public class UnitOfWork : IUnitOfWork
         if (_currentTransaction != null)
         {
             await _currentTransaction.RollbackAsync();
-            _currentTransaction.Dispose();
+            await _currentTransaction.DisposeAsync();
             _currentTransaction = null;
+            _context.ChangeTracker.Clear();
         }
     }
+
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
-        // The audit logic (CreatedAt, CreatedByUserId, etc.) will be added here on Day 4
         return await _context.SaveChangesAsync(cancellationToken);
     }
 
     public void Dispose()
     {
+        _currentTransaction?.Dispose();
         _context.Dispose();
         GC.SuppressFinalize(this);
     }

@@ -10,3 +10,7 @@ E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\refint\Lawyers.Domain.dll
 E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.pdb
 E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\ref\Lawyers.Domain.dll
 E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.csproj.AssemblyReference.cache
+E:\Store\Lawyers\Lawyers.Domain\obj\Debug\net10.0\Lawyers.Domain.sourcelink.json
+E:\Store\Lawyers\.build-check\Lawyers.Api\Lawyers.Domain.deps.json
+E:\Store\Lawyers\.build-check\Lawyers.Api\Lawyers.Domain.dll
+E:\Store\Lawyers\.build-check\Lawyers.Api\Lawyers.Domain.pdb

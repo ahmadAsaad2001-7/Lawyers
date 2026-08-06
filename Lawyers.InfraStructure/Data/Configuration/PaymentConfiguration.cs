@@ -33,7 +33,7 @@ public class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .IsRequired()
             .HasMaxLength(3); // e.g., USD, EUR
 
-        builder.Property(p => p.StripePaymentIntentId)
+        builder.Property(p => p.TransactionId)
             .HasMaxLength(255);
 
         // Store Enum as string

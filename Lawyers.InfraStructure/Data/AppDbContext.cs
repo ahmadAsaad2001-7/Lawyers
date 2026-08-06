@@ -1,6 +1,7 @@
 ﻿using Lawyers.Application.Interfaces;
 using Lawyers.Domain.Entities;
 using Lawyers.Infrastructure.Data.Configuration;
+using Lawyers.InfraStructure.Data.Configuration;
 using Lawyers.Infrastructure.Data.Configurations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
@@ -17,12 +18,16 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         _currentUserService = currentUserService;
 
     }
-    public DbSet<User> Users { get; set; }
+
+    
     public DbSet<ClientProfile> ClientProfiles { get; set; }
     public DbSet<LawyerProfile> LawyerProfiles { get; set; }
     public DbSet<Consultation> Consultations { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<Message> Messages { get; set; }
+    public DbSet<LawyerPost> LawyerPosts { get; set; }
+    public DbSet<PostAttachment> PostAttachments { get; set; }
+    public DbSet<FreeConsultationMessage> FreeMessages { get; set; } // 👈 1. Added DbSet
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
@@ -61,6 +66,9 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         builder.ApplyConfiguration(new MessageConfiguration());
         builder.ApplyConfiguration(new UserConfiguration());
         builder.ApplyConfiguration(new LawyerProfileConfiguration());
+        builder.ApplyConfiguration(new FreeConsultationMessageConfiguration()); // 👈 2. Applied Configuration
+        builder.ApplyConfiguration(new LawyerPostConfiguration());
+        builder.ApplyConfiguration(new PostAttachmentConfiguration());
         
     }
 

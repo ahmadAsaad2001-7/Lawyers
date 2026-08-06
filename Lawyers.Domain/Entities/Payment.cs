@@ -15,7 +15,7 @@ public class Payment : AuditableEntity
     public string Currency { get; set; } = "USD";
     public int ConsultationId { get; set; }
     public Consultation Consultation { get; set; } = null!;
-    public string StripePaymentIntentId { get; set; } = string.Empty;
+    public string TransactionId { get; set; } = string.Empty;
     public PaymentStatus Status { get; set; } = PaymentStatus.Pending;
     
     // Nullable because it only gets a date when the payment actually succeeds
