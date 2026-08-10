@@ -1,12 +1,8 @@
 ﻿using Lawyers.Domain.Entities;
-
-namespace Lawyers.InfraStructure.Data.Configuration;
-
-using Lawyers.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-
+namespace Lawyers.Infrastructure.Data.Configuration;
 
 public class PostAttachmentConfiguration : IEntityTypeConfiguration<PostAttachment>
 {

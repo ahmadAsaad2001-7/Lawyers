@@ -31,7 +31,15 @@ public class GetLawyersQueryHandler : IRequestHandler<GetLawyersQuery, PagedResu
             IQueryable<LawyerProfile> queryable = _unitOfWork.LawyerProfiles
                 .Query()
                 .Where(l => l.IsVerified);
-
+            if (!string.IsNullOrWhiteSpace(request.Search))
+            {
+                var searchLower = request.Search.ToLower();
+                queryable = queryable.Where(l => 
+                    l.FullName.ToLower().Contains(searchLower) || 
+                    l.Bio.ToLower().Contains(searchLower) ||
+                    l.Specialization.ToLower().Contains(searchLower) ||
+                    l.LawFirmName.ToLower().Contains(searchLower));
+            }
             // 2. Apply Filters
             if (!string.IsNullOrWhiteSpace(request.City))
             {

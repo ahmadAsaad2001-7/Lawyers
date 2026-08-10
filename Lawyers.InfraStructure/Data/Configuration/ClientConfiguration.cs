@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Lawyers.Infrastructure.Data.Configurations;
+namespace Lawyers.Infrastructure.Data.Configuration;
 
 public class ClientProfileConfiguration : IEntityTypeConfiguration<ClientProfile>
 {
@@ -27,7 +27,5 @@ public class ClientProfileConfiguration : IEntityTypeConfiguration<ClientProfile
         // Specific properties
         builder.Property(cp => cp.FullName).IsRequired().HasMaxLength(200);
         builder.Property(cp => cp.PhoneNumber).HasMaxLength(20);
-        
-        // Note: The principal end of the 1:1 relationship with User is configured in UserConfiguration
     }
 }

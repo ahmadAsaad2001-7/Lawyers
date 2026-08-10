@@ -5,6 +5,8 @@ namespace Lawyers.Application.Features.Lawyers.Queries;
 
 public record GetLawyersQuery : IRequest<PagedResult<LawyerDto>>
 {
+    public string? Search { get; set; } // ✅ ADD THIS LINE
+
     public string? State { get; set; }
     public string? City { get; set; }
     public string? Specialization { get; set; }

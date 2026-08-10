@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Lawyers.Infrastructure.Data.Configurations;
+namespace Lawyers.Infrastructure.Data.Configuration;
 
 public class MessageConfiguration : IEntityTypeConfiguration<Message>
 {
@@ -25,17 +25,17 @@ public class MessageConfiguration : IEntityTypeConfiguration<Message>
         builder.Property(m => m.DeletedByUserId).IsRequired(false);
 
         // Specific properties
-        builder.Property(m => m.Content).IsRequired().HasMaxLength(4000); 
+        builder.Property(m => m.Content).IsRequired().HasMaxLength(4000);
 
         // Relationships
         builder.HasOne(m => m.Consultation)
-            .WithMany() // Consultation doesn't need a List<Message> navigation property
+            .WithMany()
             .HasForeignKey(m => m.ConsultationId)
-            .OnDelete(DeleteBehavior.Cascade); // If consultation is deleted, messages go with it
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(m => m.Sender)
             .WithMany()
             .HasForeignKey(m => m.SenderId)
-            .OnDelete(DeleteBehavior.Restrict); // Don't delete messages if user is soft-deleted
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

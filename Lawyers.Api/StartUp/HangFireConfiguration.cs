@@ -1,5 +1,6 @@
 ﻿using Hangfire;
 using Hangfire.Dashboard;
+using Hangfire.PostgreSql;
 
 namespace Lawyers.Api.StartUp;
 
@@ -11,7 +12,7 @@ public static class HangFireConfiguration
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-            .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+            .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
         builder.Services.AddHangfireServer();
     }
 

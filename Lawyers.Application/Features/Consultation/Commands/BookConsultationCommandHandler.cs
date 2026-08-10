@@ -87,14 +87,18 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
                 ConsultationId = consultation.Id,
                 ClientId = consultation.ClientId,
                 LawyerId = consultation.LawyerId,
-                TransactionId = paymentResult.PaymentIntentId,
+                TransactionId = paymentResult.PaymentIntentId, // merchantOrderId for now (column is NOT NULL)
                 Amount = totalCost,
                 Currency = PaymentCurrency,
-                Status = PaymentStatus.Pending,
-                // Channel = request.Channel // Assign if your Payment entity tracks channel
+                Status = PaymentStatus.Pending
             };
 
+            // 🔗 THE MISSING LINK: wire the payment into the consultation
+            // EF will populate Consultation.PaymentId from this navigation on SaveChanges
+            consultation.Payment = payment;
+
             await _unitOfWork.Payments.AddAsync(payment, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken); // INSERT payment + UPDATE consultation.PaymentId
             await _unitOfWork.CommitTransactionAsync();
         }
         catch
@@ -104,7 +108,6 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
             await CancelReservedConsultationAsync(consultation.Id, cancellationToken);
             throw;
         }
-
         return new BookingResponseDto
         {
             ConsultationId = consultation.Id,
@@ -151,6 +154,7 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
             };
 
             await _unitOfWork.Consultations.AddAsync(consultation, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitTransactionAsync();
 
             return consultation;

@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Lawyers.InfraStructure.Data.Configuration;
+namespace Lawyers.Infrastructure.Data.Configuration;
 
 public class FreeConsultationMessageConfiguration : IEntityTypeConfiguration<FreeConsultationMessage>
 {
@@ -29,10 +29,10 @@ public class FreeConsultationMessageConfiguration : IEntityTypeConfiguration<Fre
             .HasMaxLength(2000);
 
         builder.Property(m => m.SenderIpAddress)
-            .HasMaxLength(45); // Accommodates IPv6 addresses
+            .HasMaxLength(45);
 
         builder.Property(m => m.CreatedAt)
-            .HasDefaultValueSql("GETUTCDATE()");
+            .HasDefaultValueSql("NOW()");
 
         // Foreign key relationship with LawyerProfile
         builder.HasOne(m => m.Lawyer)

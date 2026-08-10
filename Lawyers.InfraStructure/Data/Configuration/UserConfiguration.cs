@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Lawyers.Infrastructure.Data.Configurations;
+namespace Lawyers.Infrastructure.Data.Configuration;
 
 public class UserConfiguration : IEntityTypeConfiguration<User>
 {
@@ -14,19 +14,19 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
 
         // BaseEntity properties
         builder.Property(u => u.IsDeleted).HasDefaultValue(false);
-        builder.Property(u => u.RowVersion).IsRowVersion(); // Concurrency control (SQL Server)
+        builder.Property(u => u.RowVersion).IsRowVersion();
 
         // Specific properties
         builder.Property(u => u.UserName).IsRequired().HasMaxLength(100);
         builder.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256);
         builder.Property(u => u.Email).IsRequired().HasMaxLength(256);
-        
-        // Unique constraint on Email
+
+        // Indexes
         builder.HasIndex(u => u.Email).IsUnique();
 
-        // Store Enum as string in DB for readability
+        // Enum conversion
         builder.Property(u => u.Role)
-            .HasConversion<string>() 
+            .HasConversion<string>()
             .HasMaxLength(20);
 
         // 1-to-1 Relationships

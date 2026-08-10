@@ -5,43 +5,47 @@ using Lawyers.Application.Features.Payments.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
-using Lawyers.InfraStructure.Helpers; // Where your KashierOptions live
+using Lawyers.InfraStructure.Helpers;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Lawyers.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous]
 public class WebhooksController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly KashierOptions _kashierOptions;
+    private readonly ILogger<WebhooksController> _logger;
 
-    public WebhooksController(IMediator mediator, IOptions<KashierOptions> kashierOptions)
+    public WebhooksController(IMediator mediator, IOptions<KashierOptions> kashierOptions, ILogger<WebhooksController> logger)
     {
         _mediator = mediator;
         _kashierOptions = kashierOptions.Value;
+        _logger = logger;
     }
 
     [HttpPost("kashier")]
     public async Task<IActionResult> HandleKashierWebhook()
     {
-        // 1. Read the raw request body (Required for HMAC validation)
         using var reader = new StreamReader(Request.Body);
         var rawBody = await reader.ReadToEndAsync();
 
-        // 2. Get the signature Kashier sent in the headers
+        _logger.LogInformation("Kashier Webhook Received. Raw Body: {RawBody}", rawBody);
+
         if (!Request.Headers.TryGetValue("X-Kashier-Signature", out var signatureHeader))
         {
+            _logger.LogWarning("Missing X-Kashier-Signature header.");
             return BadRequest("Missing signature header.");
         }
 
-        // 3. Validate the HMAC (Ensure the request actually came from Kashier)
         if (!IsSignatureValid(rawBody, signatureHeader!))
         {
+            _logger.LogWarning("Invalid HMAC signature.");
             return Unauthorized("Invalid signature. Request rejected.");
         }
 
-        // 4. Parse the JSON into a DTO
         var webhookEvent = JsonSerializer.Deserialize<KashierWebhookDto>(rawBody, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
         if (webhookEvent == null || string.IsNullOrWhiteSpace(webhookEvent.MerchantOrderId))
@@ -49,14 +53,13 @@ public class WebhooksController : ControllerBase
             return BadRequest("Invalid payload.");
         }
 
-        // 5. Send to MediatR to update the database
-        // (We convert MerchantOrderId back to int, since we mapped consultationId to it!)
         if (!int.TryParse(webhookEvent.MerchantOrderId, out var consultationId))
         {
             return BadRequest("Invalid merchant order id.");
         }
 
-        if (string.IsNullOrWhiteSpace(webhookEvent.OrderId) || string.IsNullOrWhiteSpace(webhookEvent.Status))
+        // ✅ FIX: Use PaymentId (or whatever Kashier's JSON key actually is)
+        if (string.IsNullOrWhiteSpace(webhookEvent.PaymentId) || string.IsNullOrWhiteSpace(webhookEvent.Status))
         {
             return BadRequest("Invalid payment event.");
         }
@@ -64,13 +67,12 @@ public class WebhooksController : ControllerBase
         var command = new NotifyPaymentSuccessCommand 
         { 
             ConsultationId = consultationId, 
-            TransactionId = webhookEvent.OrderId,
+            GatewayPaymentId = webhookEvent.PaymentId, // ✅ Mapped correctly
             Status = webhookEvent.Status
         };
 
         await _mediator.Send(command);
 
-        // 6. Always return 200 OK to Kashier quickly, otherwise they will retry!
         return Ok();
     }
 
@@ -84,18 +86,20 @@ public class WebhooksController : ControllerBase
 
         using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_kashierOptions.SecretKey));
         var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(payload));
-        var computedSignature = Convert.ToBase64String(hash);
+        
+        // ✅ FIX: Kashier uses Hexadecimal encoding, NOT Base64
+        var computedSignature = Convert.ToHexString(hash).ToLowerInvariant();
 
         return CryptographicOperations.FixedTimeEquals(
             Encoding.UTF8.GetBytes(computedSignature),
-            Encoding.UTF8.GetBytes(signature));
+            Encoding.UTF8.GetBytes(signature.ToLowerInvariant()));
     }
 }
 
-// Internal DTO for the Webhook payload
 public class KashierWebhookDto
 {
-    public string OrderId { get; set; } = string.Empty;
-    public string MerchantOrderId { get; set; } = string.Empty; // This is our ConsultationId
-    public string Status { get; set; } = string.Empty; // e.g., "SUCCESS"
+    // ✅ FIX: Changed from OrderId to PaymentId (Verify with Kashier docs/dashboard)
+    public string PaymentId { get; set; } = string.Empty; 
+    public string MerchantOrderId { get; set; } = string.Empty; 
+    public string Status { get; set; } = string.Empty; 
 }

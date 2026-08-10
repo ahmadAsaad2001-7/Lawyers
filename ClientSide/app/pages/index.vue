@@ -5,7 +5,7 @@ definePageMeta({
 </script>
 
 <template>
-  <div dir="rtl" class="flex flex-col lg:flex-row gap-6 items-start">
+  <div dir="rtl" class="flex flex-col lg:flex-row gap-6 items-start container mx-auto p-4">
     <aside class="w-full lg:w-1/4 sticky top-6">
       <SearchSideBar />
     </aside>
@@ -14,4 +14,5 @@ definePageMeta({
       <CardList />
     </main>
   </div>
+  
 </template>

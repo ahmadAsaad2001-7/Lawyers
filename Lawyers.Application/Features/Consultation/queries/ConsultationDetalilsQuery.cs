@@ -64,12 +64,13 @@ public class ConsultationDetailsHandler : IRequestHandler<ConsultationDetailsQue
        
         var isClient = consultation.Client.UserId == currentUserId;
 
-        var otherUserName = isClient
-            ? consultation.Lawyer.User.UserName
-            : consultation.Client.User.UserName;
+        // ✅ FIX: Use the Profile's FullName
+        var otherUserName = isClient 
+            ? consultation.Lawyer.FullName 
+            : consultation.Client.FullName;
 
         var otherUserImageUrl = isClient
-            ? consultation.Lawyer.User.ProfileImageUrl   // ⚠️ confirm actual property name below
+            ? consultation.Lawyer.User.ProfileImageUrl   
             : consultation.Client.User.ProfileImageUrl;
         // Get the "other" user (who you're chatting with)
         var otherUser = isClient ? consultation.Lawyer.User : consultation.Client.User;

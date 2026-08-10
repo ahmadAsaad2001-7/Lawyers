@@ -6,5 +6,5 @@ public abstract class BaseEntity
 {
     public int Id { get; set; }
     public bool IsDeleted { get; set; } = false;
-    [Timestamp]
-    public byte[] RowVersion { get; set; }}
+    [Timestamp] public byte[] RowVersion { get; set; } = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+}

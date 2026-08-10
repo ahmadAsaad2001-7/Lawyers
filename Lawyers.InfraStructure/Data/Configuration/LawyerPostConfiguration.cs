@@ -17,8 +17,7 @@ public class LawyerPostConfiguration : IEntityTypeConfiguration<LawyerPost>
             .HasMaxLength(300);
 
         builder.Property(p => p.Content)
-            .IsRequired()
-            .HasColumnType("nvarchar(max)"); // or "text" depending on DB
+            .IsRequired();
 
         builder.Property(p => p.Excerpt)
             .HasMaxLength(500);

@@ -1,8 +1,6 @@
 ﻿using Lawyers.Application.Interfaces;
 using Lawyers.Domain.Entities;
 using Lawyers.Infrastructure.Data.Configuration;
-using Lawyers.InfraStructure.Data.Configuration;
-using Lawyers.Infrastructure.Data.Configurations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 
@@ -69,8 +67,17 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         builder.ApplyConfiguration(new FreeConsultationMessageConfiguration()); // 👈 2. Applied Configuration
         builder.ApplyConfiguration(new LawyerPostConfiguration());
         builder.ApplyConfiguration(new PostAttachmentConfiguration());
-        
+        var defaultRowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
+    
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            var rowVersionProperty = entityType.FindProperty("RowVersion");
+            if (rowVersionProperty != null && rowVersionProperty.ClrType == typeof(byte[]))
+            {
+                rowVersionProperty.SetDefaultValue(defaultRowVersion);
+            }
+        }
     }
-
-
 }
+
+

@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Lawyers.Infrastructure.Data.Configurations;
+namespace Lawyers.Infrastructure.Data.Configuration;
 
 public class ConsultationConfiguration : IEntityTypeConfiguration<Consultation>
 {
@@ -27,7 +27,7 @@ public class ConsultationConfiguration : IEntityTypeConfiguration<Consultation>
         // Specific properties
         builder.Property(c => c.ScheduledAt).IsRequired();
         builder.Property(c => c.DurationMinutes).IsRequired();
-        
+
         // Store Enum as string in DB
         builder.Property(c => c.Status)
             .HasConversion<string>()
@@ -37,19 +37,18 @@ public class ConsultationConfiguration : IEntityTypeConfiguration<Consultation>
         builder.HasOne(c => c.Client)
             .WithMany()
             .HasForeignKey(c => c.ClientId)
-            .OnDelete(DeleteBehavior.Restrict); // Prevent deleting client if they have consultations
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(c => c.Lawyer)
             .WithMany()
             .HasForeignKey(c => c.LawyerId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // 1-to-1 (or 1-to-0..1) with Payment. 
-        // Consultation is the dependent because it holds the PaymentId FK.
+        // 1-to-1 with Payment (Payment holds ConsultationId FK)
         builder.HasOne(c => c.Payment)
             .WithOne(p => p.Consultation)
-            .HasForeignKey<Payment>(p => p.ConsultationId) // <--- FK is on Payment!
-            .IsRequired(false) // A consultation might be created before payment is attempted
-            .OnDelete(DeleteBehavior.Cascade); 
+            .HasForeignKey<Payment>(p => p.ConsultationId)
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
