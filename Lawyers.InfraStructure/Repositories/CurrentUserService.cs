@@ -27,6 +27,9 @@ public class CurrentUserService : ICurrentUserService
             return userIdClaim != null ? int.Parse(userIdClaim.Value) : null;
         }
     }
+    public bool IsAdmin =>
+        _httpContextAccessor.HttpContext?.User
+            .FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "Admin";
 
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
 }

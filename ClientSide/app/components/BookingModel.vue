@@ -116,7 +116,7 @@ const handleClose = () => {
 
 <template>
   <Teleport to="body">
-    <Transition name="modal-fade">
+    <Transition name="model-fade">
       <div
           v-if="isOpen"
           class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-emerald-950/40 backdrop-blur-sm"
@@ -257,12 +257,12 @@ const handleClose = () => {
 </template>
 
 <style scoped>
-.modal-fade-enter-active,
-.modal-fade-leave-active {
+.model-fade-enter-active,
+.model-fade-leave-active {
   transition: opacity 0.2s ease;
 }
-.modal-fade-enter-from,
-.modal-fade-leave-to {
+.model-fade-enter-from,
+.model-fade-leave-to {
   opacity: 0;
 }
 </style>

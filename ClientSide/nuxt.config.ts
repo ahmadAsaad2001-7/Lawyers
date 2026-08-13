@@ -10,7 +10,13 @@ export default defineNuxtConfig({
     ],
     runtimeConfig: {
         public: {
-            apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://localhost:7129/api'
+            apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://localhost:7129/api',
+            // TURN is required for calls between users behind restrictive NATs,
+            // mobile networks, or corporate firewalls. Leave these empty for
+            // local STUN-only development.
+            turnUrl: process.env.NUXT_PUBLIC_TURN_URL || '',
+            turnUsername: process.env.NUXT_PUBLIC_TURN_USERNAME || '',
+            turnCredential: process.env.NUXT_PUBLIC_TURN_CREDENTIAL || ''
         }
     }
 })

@@ -58,4 +58,5 @@ internal class DummyCurrentUserService : ICurrentUserService
     public int? UserId => null;
     public bool IsAuthenticated => false;
     public string? Email => null;
+    public bool IsAdmin => false;
 }

@@ -1,6 +1,6 @@
 import { useAuthStore } from '~/stores/auth';
-
+// app/plugins/auth.client.ts  ← the .client suffix is the fix
 export default defineNuxtPlugin(() => {
-    const authStore = useAuthStore();
-    authStore.initAuth();
+    const auth = useAuthStore();
+    auth.initAuth();
 });

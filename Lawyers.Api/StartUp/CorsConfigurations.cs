@@ -8,8 +8,7 @@ public static class CorsConfigurations
         {
             options.AddPolicy("NuxtPolicy", policy =>
             {
-                policy.WithOrigins("http://localhost:3000") // Your Nuxt development server
-                    .AllowAnyHeader()
+                policy.WithOrigins("http://localhost:3000", "http://127.0.0.1:3000")                    .AllowAnyHeader()
                     .AllowAnyMethod()
                     .AllowCredentials(); // Critical for SignalR WebRTC signaling
             });

@@ -7,5 +7,5 @@ public class BookingResponseDto
     public DateTime ScheduledAt { get; set; }
     public string Status { get; set; } = string.Empty;
     public decimal TotalCost { get; set; }
-    public string PaymentClientSecret { get; set; } = string.Empty;
+    public string? PaymentClientSecret { get; set; } = string.Empty;
 }

@@ -37,7 +37,9 @@ export const useAuthStore = defineStore('auth', () => {
     const user = ref<UserState | null>(null)
     const isLoading = ref(false)
 
-    const isAuthenticated = computed(() => !!token.value)
+    // A token alone is not proof of a live session: it may be expired or revoked.
+    // Waiting for /me prevents the profile UI from briefly showing a logged-in user.
+    const isAuthenticated = computed(() => !!token.value && !!user.value)
 
     // POST /api/auth/login -> LoginCommandHandler
     async function login(credentials: { email: string; password: string }) {
@@ -89,16 +91,22 @@ export const useAuthStore = defineStore('auth', () => {
 
     // GET /api/auth/me
     async function fetchMe() {
-        if (!token.value) return
+        if (!token.value) return;
 
         try {
             const response = await $fetch<UserState>('/auth/me', {
                 baseURL: config.public.apiBase,
                 headers: { Authorization: `Bearer ${token.value}` }
-            })
-            user.value = response
-        } catch {
-            logout()
+            });
+            user.value = response;
+        } catch (err: any) {
+            // ✅ Only log out when the server explicitly says the token is invalid.
+            // SSL/network/500 errors must NOT destroy the session.
+            if (err?.statusCode === 401) {
+                logout();
+            } else {
+                console.warn('[auth] /auth/me failed (network/SSL?), keeping session:', err?.message);
+            }
         }
     }
 // GET /api/auth/confirm-email
@@ -126,7 +134,9 @@ export const useAuthStore = defineStore('auth', () => {
     function logout() {
         token.value = null;
         user.value = null;
-        navigateTo('/auth/login'); // Fixed route path
+        if (import.meta.client) {
+            navigateTo('/auth/login');
+        }
     }
 
     return {

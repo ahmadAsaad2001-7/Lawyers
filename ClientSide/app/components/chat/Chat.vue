@@ -1,11 +1,9 @@
 ﻿<script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useAuthStore } from '~/stores/auth';
-import ChatSidebar from '~/components/chat/ChatSidebar.vue';
 import ChatThread from '~/components/chat/ChatThread.vue';
 import FreeInquiryReply from '~/components/chat/FreeInquiryReply.vue';
-import type { ChatSummary, FreeInquiry } from '~/stores/chat';
-
+import type { ChatSummary, FreeInquiry } from '~/types/chat';
 const authStore = useAuthStore();
 const config = useRuntimeConfig();
 

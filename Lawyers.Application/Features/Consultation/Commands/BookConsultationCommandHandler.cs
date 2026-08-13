@@ -44,13 +44,54 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
             throw new Exception("Lawyer not found or not verified.");
         }
 
+        // ✅ Admin auto-creates a client profile so they can occupy the ClientId slot
         var clientProfile = await _unitOfWork.ClientProfiles.Query()
             .FirstOrDefaultAsync(client => client.UserId == _currentUserService.UserId.Value, cancellationToken);
 
-        if (clientProfile == null)
+        if (clientProfile == null && _currentUserService.IsAdmin)
+        {
+            clientProfile = new ClientProfile
+            {
+                UserId = _currentUserService.UserId.Value,
+                FullName = "Admin"
+            };
+            await _unitOfWork.ClientProfiles.AddAsync(clientProfile, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        else if (clientProfile == null)
         {
             throw new Exception("Client profile not found.");
         }
+
+        // 🛡️ ADMIN BYPASS: no overlap check, no payment, instantly Confirmed
+        if (_currentUserService.IsAdmin)
+        {
+            var adminConsultation = new Domain.Entities.Consultation
+            {
+                ClientId = clientProfile!.Id,
+                LawyerId = request.LawyerId,
+                ScheduledAt = request.ScheduledAt,
+                DurationMinutes = request.DurationMinutes,
+                Status = ConsultationStatus.Confirmed
+            };
+
+            await _unitOfWork.Consultations.AddAsync(adminConsultation, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            return new BookingResponseDto
+            {
+                ConsultationId = adminConsultation.Id,
+                LawyerId = lawyer.Id,
+                ScheduledAt = adminConsultation.ScheduledAt,
+                Status = adminConsultation.Status.ToString(),
+                TotalCost = 0,
+                PaymentClientSecret = null   // ✅ no Kashier redirect
+            };
+        }
+
+        // ═══════════════════════════════════════════════════
+        // Normal client flow continues below (unchanged)
+        // ═══════════════════════════════════════════════════
 
         var totalCost = lawyer.HourlyRate * (request.DurationMinutes / 60m);
         var consultation = await ReserveConsultationSlotAsync(request, clientProfile.Id, cancellationToken);
@@ -87,18 +128,17 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
                 ConsultationId = consultation.Id,
                 ClientId = consultation.ClientId,
                 LawyerId = consultation.LawyerId,
-                TransactionId = paymentResult.PaymentIntentId, // merchantOrderId for now (column is NOT NULL)
+                TransactionId = paymentResult.PaymentIntentId,
                 Amount = totalCost,
                 Currency = PaymentCurrency,
                 Status = PaymentStatus.Pending
             };
 
-            // 🔗 THE MISSING LINK: wire the payment into the consultation
-            // EF will populate Consultation.PaymentId from this navigation on SaveChanges
+            // 🔗 wire the payment into the consultation
             consultation.Payment = payment;
 
             await _unitOfWork.Payments.AddAsync(payment, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken); // INSERT payment + UPDATE consultation.PaymentId
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
             await _unitOfWork.CommitTransactionAsync();
         }
         catch
@@ -108,6 +148,7 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
             await CancelReservedConsultationAsync(consultation.Id, cancellationToken);
             throw;
         }
+
         return new BookingResponseDto
         {
             ConsultationId = consultation.Id,

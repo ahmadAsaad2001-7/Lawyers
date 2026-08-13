@@ -1,7 +1,6 @@
 ﻿<!-- components/Card.vue -->
 <script setup lang="ts">
 import { ref } from 'vue';
-import BookingModal from "./BookingModel.vue";
 import type { Lawyer } from '~/types/Lawyer'; 
 
 
@@ -10,7 +9,7 @@ const props = defineProps<{
 }>();
 
 const currentTab = ref<'front' | 'back'>('front');
-const isBookingModalOpen = ref(false);
+const isBookingModelOpen = ref(false);
 
 const starPath = 'M 44.78 10.34 Q 50.00 4.00 55.22 10.34 Q 61.91 5.57 65.31 13.04 Q 73.00 10.16 74.35 18.27 Q 82.53 17.47 81.73 25.65 Q 89.84 27.00 86.96 34.69 Q 94.43 38.09 89.66 44.78 Q 96.00 50.00 89.66 55.22 Q 94.43 61.91 86.96 65.31 Q 89.84 73.00 81.73 74.35 Q 82.53 82.53 74.35 81.73 Q 73.00 89.84 65.31 86.96 Q 61.91 94.43 55.22 89.66 Q 50.00 96.00 44.78 89.66 Q 38.09 94.43 34.69 86.96 Q 27.00 89.84 25.65 81.73 Q 17.47 82.53 18.27 74.35 Q 10.16 73.00 13.04 65.31 Q 5.57 61.91 10.34 55.22 Q 4.00 50.00 10.34 44.78 Q 5.57 38.09 13.04 34.69 Q 10.16 27.00 18.27 25.65 Q 17.47 17.47 25.65 18.27 Q 27.00 10.16 34.69 13.04 Q 38.09 5.57 44.78 10.34 Z';
 
@@ -22,7 +21,7 @@ const handleBooked = (response: {
   status: string;
 }) => {
   console.log('Consultation reserved, awaiting payment:', response);
-  isBookingModalOpen.value = false;
+  isBookingModelOpen.value = false;
 
   if (response.paymentClientSecret) {
     window.location.href = response.paymentClientSecret;
@@ -84,7 +83,7 @@ const handleBooked = (response: {
           الملف الشخصي
         </nuxt-link>
         <button
-            @click="isBookingModalOpen = true"
+            @click="isBookingModelOpen = true"
             class="bg-amber-400 text-emerald-950 font-semibold py-2 rounded-lg hover:bg-amber-300 transition-colors"
         >
           توظيف
@@ -138,12 +137,12 @@ const handleBooked = (response: {
     </div>
 
     <!-- Booking Modal -->
-    <BookingModal
+    <BookingModel
         :lawyer="{ id: lawyer.id, name: lawyer.fullName,   
           avatar: lawyer.avatar || 'https://png.pngtree.com/background/20230809/original/pngtree-serious-man-portrait-handsome-caucasian-person-photo-picture-image_4530325.jpg' 
 , hourlyRate: lawyer.hourlyRate }"
-        :is-open="isBookingModalOpen"
-        @close="isBookingModalOpen = false"
+        :is-open="isBookingModelOpen"
+        @close="isBookingModelOpen = false"
         @booked="handleBooked"
     />
   </div>

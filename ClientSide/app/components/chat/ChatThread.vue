@@ -15,16 +15,20 @@ const newMessage = ref('');
 const isSending = ref(false);
 const messagesContainer = ref<HTMLElement | null>(null);
 const details = ref<any>(null);
+const isCallMenuOpen = ref(false);
 
 const currentUserId = computed(() => Number(authStore.user?.userId ?? 0));
 const token = computed(() => authStore.token || '');
+const isAdmin = computed(() => authStore.user?.role === 'Admin');
 
 const canChat = computed(() => {
+  if (isAdmin.value) return true;  // ✅ Admin always allowed
   if (!details.value) return false;
   return ['Confirmed', 'InProgress'].includes(details.value.status);
 });
 
 const statusMessage = computed(() => {
+  if (isAdmin.value) return '';  // ✅ No status message for admin
   if (!details.value) return '';
   const status = details.value.status;
   if (status === 'Pending') return 'الدفع غير مكتمل — المحادثة تُفتح بعد تأكيد الحجز';
@@ -44,27 +48,18 @@ watch(() => chatStore.messages.length, scrollToBottom);
 
 onMounted(async () => {
   if (!token.value) return;
-
   try {
     details.value = await $fetch(`${config.public.apiBase}/consultations/${props.consultationId}/details`, {
       headers: { Authorization: `Bearer ${token.value}` }
     });
-  } catch (e) {
-    console.error('Failed to load consultation details', e);
-  }
+  } catch (e) { console.error('Failed to load consultation details', e); }
 
-  await chatStore.connect(props.consultationId, token.value, currentUserId.value);
-
-  if (chatStore.connectionStatus === 'connected') {
-    const history = await chatStore.fetchHistory(props.consultationId);
-    chatStore.messages = history;
-    await scrollToBottom();
-  }
+  // ✅ Connection already lives in the store (page-level). Just open this chat.
+  await chatStore.openChat(props.consultationId);
+  await scrollToBottom();
 });
 
-onUnmounted(() => {
-  chatStore.disconnect();
-});
+
 
 const handleSend = async () => {
   const content = newMessage.value.trim();
@@ -102,9 +97,28 @@ const formatTime = (dateString: string) => {
               class="text-xs"
               :class="chatStore.connectionStatus === 'connected' ? 'text-green-600' : 'text-gray-400'"
           >
-                        {{ chatStore.connectionStatus === 'connected' ? 'متصل الآن' : 'جاري الاتصال...' }}
-                    </span>
+            {{ chatStore.connectionStatus === 'connected' ? 'متصل الآن' : 'جاري الاتصال...' }}
+          </span>
         </div>
+
+        <!-- Call button -->
+        <div class="relative">
+          <button
+              v-if="canChat"
+              @click="isCallMenuOpen = !isCallMenuOpen"
+              class="p-2 rounded-xl bg-emerald-800 text-white hover:bg-emerald-900 transition-colors"
+              aria-label="بدء مكالمة"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+          </button>
+          <div v-if="isCallMenuOpen" class="absolute end-0 top-full z-20 mt-2 w-44 rounded-xl border border-gray-100 bg-white p-2 shadow-lg">
+            <button @click="chatStore.startCall(consultationId, 'video'); isCallMenuOpen = false" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-emerald-50">🎥 مكالمة فيديو</button>
+            <button @click="chatStore.startCall(consultationId, 'audio'); isCallMenuOpen = false" class="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-emerald-50">🎙️ مكالمة صوتية</button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -139,8 +153,8 @@ const formatTime = (dateString: string) => {
         >
           <p class="whitespace-pre-wrap leading-relaxed">{{ msg.content }}</p>
           <span class="mt-1.5 block text-[10px] opacity-70 text-right">
-                        {{ formatTime(msg.createdAt) }}
-                    </span>
+            {{ formatTime(msg.createdAt) }}
+          </span>
         </div>
       </div>
     </div>
@@ -149,15 +163,15 @@ const formatTime = (dateString: string) => {
     <div class="border-t border-gray-100 bg-white p-4">
       <template v-if="canChat">
         <div class="flex gap-2 items-end">
-                    <textarea
-                        v-model="newMessage"
-                        @keydown.enter.exact.prevent="handleSend"
-                        :disabled="isSending"
-                        rows="1"
-                        placeholder="اكتب رسالتك هنا..."
-                        class="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
-                        style="min-height: 48px; max-height: 120px;"
-                    ></textarea>
+          <textarea
+              v-model="newMessage"
+              @keydown.enter.exact.prevent="handleSend"
+              :disabled="isSending"
+              rows="1"
+              placeholder="اكتب رسالتك هنا..."
+              class="flex-1 resize-none rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50"
+              style="min-height: 48px; max-height: 120px;"
+          ></textarea>
 
           <button
               @click="handleSend"
@@ -186,5 +200,6 @@ const formatTime = (dateString: string) => {
     >
       <p class="text-emerald-800 font-medium">جاري إعادة الاتصال...</p>
     </div>
+
   </div>
 </template>

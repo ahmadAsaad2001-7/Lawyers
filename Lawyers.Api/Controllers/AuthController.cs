@@ -100,7 +100,9 @@ public class AuthController : ControllerBase
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var email = User.FindFirst(ClaimTypes.Email)?.Value;
+        var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? email;
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
         
-        return Ok(new { userId, email, message = "Authentication successful!" });
+        return Ok(new { userId, userName, email, role });
     }
 }

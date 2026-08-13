@@ -1,12 +1,17 @@
 ﻿<script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { PostType, type LawyerPostSummaryDto } from '~/types/Lawyer';
+import { useAuthStore } from '~/stores/auth';
 
 const route = useRoute();
 const router = useRouter();
 const config = useRuntimeConfig();
+const authStore = useAuthStore();
 
 const lawyerId = route.params.id as string;
+
+// Admin check
+const isAdmin = computed(() => authStore.user?.role === 'Admin');
 
 // 1. Fetch Lawyer Profile using your existing composable
 const { lawyer, isLoading: isLawyerLoading, error: lawyerError } = useLawyer(lawyerId);
@@ -22,7 +27,7 @@ const fetchPosts = async () => {
 
   try {
     const data = await $fetch<LawyerPostSummaryDto[]>(
-        `${config.public.apiBase}lawyer-posts/lawyer/${lawyerId}`,
+        `${config.public.apiBase}/lawyer-posts/lawyer/${lawyerId}`,
         {
           query: { page: 1, pageSize: 10 }
         }
@@ -58,8 +63,19 @@ const handlePostClick = (postId: number) => {
   router.push(`/posts/${postId}`);
 };
 
-const handleBooking = () => {
-  router.push(`/book/${lawyerId}`);
+const isBookingOpen = ref(false);
+const bookingLawyer = computed(() => {
+  if (!lawyer.value) return null;
+  return {
+    id: lawyer.value.id,
+    name: lawyer.value.fullName,
+    avatar: lawyer.value.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(lawyer.value.fullName)}&background=065f46&color=fff`,
+    hourlyRate: lawyer.value.hourlyRate
+  };
+});
+const handleBooked = (response: any) => {
+  isBookingOpen.value = false;
+  if (response?.paymentClientSecret) window.location.href = response.paymentClientSecret;
 };
 </script>
 
@@ -149,10 +165,22 @@ const handleBooking = () => {
           </div>
 
           <button
-              @click="handleBooking"
+              @click="isBookingOpen = true"
               class="w-full mt-6 bg-emerald-800 text-white font-semibold py-3 rounded-xl text-sm hover:bg-emerald-700 transition-colors shadow-sm"
           >
             طلب استشارة
+          </button>
+
+          <!-- Admin-only free conversation button -->
+          <button
+              v-if="isAdmin"
+              @click="isBookingOpen = true"
+              class="w-full mt-3 bg-amber-500 text-white font-semibold py-3 rounded-xl text-sm hover:bg-amber-600 transition-colors shadow-sm flex items-center justify-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            محادثة مجانية (مدير)
           </button>
         </div>
       </div>
@@ -259,6 +287,13 @@ const handleBooking = () => {
       </div>
 
     </main>
+    <BookingModel
+        v-if="isBookingOpen && bookingLawyer"
+        :lawyer="bookingLawyer"
+        :is-open="isBookingOpen"
+        @close="isBookingOpen = false"
+        @booked="handleBooked"
+    />
 
   </div>
 </template>

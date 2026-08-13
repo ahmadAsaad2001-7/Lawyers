@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import type { ChatSummary, FreeInquiry } from '~/stores/Chat';
-
+import type { ChatSummary, FreeInquiry } from '~/types/chat';
 const props = defineProps<{
   chats: ChatSummary[];
   inquiries: FreeInquiry[];
@@ -9,6 +8,8 @@ const props = defineProps<{
   activeChatId: number | null;
   activeInquiryId: number | null;
   isLoading: boolean;
+  unreadCounts: Record<number, number>; 
+
 }>();
 
 const emit = defineEmits<{
@@ -33,7 +34,7 @@ const filteredInquiries = computed(() => {
 });
 
 const totalUnread = computed(() =>
-    props.chats.reduce((sum, c) => sum + c.unreadCount, 0)
+    Object.values(props.unreadCounts).reduce((sum, count) => sum + count, 0)
 );
 
 const unreadInquiries = computed(() =>
@@ -150,11 +151,11 @@ const formatWhen = (dateStr: string | null) => {
             <div class="flex items-center justify-between">
               <p class="truncate text-xs text-gray-500">{{ chat.lastMessageContent || 'لا توجد رسائل بعد' }}</p>
               <span
-                  v-if="chat.unreadCount > 0"
+                  v-if="(props.unreadCounts[chat.id] ?? 0) > 0"
                   class="ms-2 flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white"
               >
-                                {{ chat.unreadCount }}
-                            </span>
+        {{ props.unreadCounts[chat.id] }}
+    </span>
             </div>
           </div>
         </button>

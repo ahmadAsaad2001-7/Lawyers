@@ -18,7 +18,7 @@ public class ConsultationSummaryDto
     public DateTime? LastMessageDate { get; set; }
     public int? LastMessageSenderId { get; set; }
     public bool IsOnline { get; set; }
-    public int UnreadCount { get; set; } // 👈 ADD THIS HERE
+    public int UnreadCount { get; set; }
 }
 
 public class GetMyConsultationsHandler : IRequestHandler<GetMyConsultationsQuery, List<ConsultationSummaryDto>>
@@ -37,43 +37,52 @@ public class GetMyConsultationsHandler : IRequestHandler<GetMyConsultationsQuery
         var currentUserId = _currentUserService.UserId 
             ?? throw new UnauthorizedAccessException("User must be authenticated");
 
-        // 1. Fetch all consultations where the user is either the Client or the Lawyer// Inside GetMyConsultationsHandler.cs
-
-// 1. Fetch all consultations where the user is either the Client or the Lawyer
-        var consultations = await _unitOfWork.Consultations.Query()
-            .Include(c => c.Client).ThenInclude(client => client.User) // 👈 ADD THIS HERE
+        // A conversation belongs only to its client and lawyer.  Admins can see
+        // consultations they created themselves, but must never inherit every
+        // other user's private conversations.
+        IQueryable<Domain.Entities.Consultation> query = _unitOfWork.Consultations.Query()
+            .Include(c => c.Client).ThenInclude(cl => cl.User)
             .Include(c => c.Lawyer).ThenInclude(l => l.User)
-            .Where(c => c.Client.UserId == currentUserId || c.Lawyer.UserId == currentUserId)
-            .ToListAsync(cancellationToken);
+            .Where(c => c.Client.UserId == currentUserId || c.Lawyer.UserId == currentUserId);
+
+        var consultations = await query.ToListAsync(cancellationToken);
 
         if (!consultations.Any()) return new List<ConsultationSummaryDto>();
 
-        // 2. Fetch the last message for each consultation in a single optimized query
         var consultationIds = consultations.Select(c => c.Id).ToList();
+
+        // Last message per consultation (single optimized query)
         var lastMessages = await _unitOfWork.Messages.Query()
             .Where(m => consultationIds.Contains(m.ConsultationId))
             .GroupBy(m => m.ConsultationId)
-            .Select(g => new 
+            .Select(g => new
             {
                 ConsultationId = g.Key,
                 LastMessage = g.OrderByDescending(m => m.CreatedAt).FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
 
-        var lastMessageDict = lastMessages.ToDictionary(x => x.ConsultationId, x => x.LastMessage);
+        var lastMessageDict = lastMessages.ToDictionary(x => x.ConsultationId, x => x.LastMessage!);
 
-        // 3. Map to DTO
+        // Unread count per consultation = messages sent by the OTHER user
+        var unreadCounts = await _unitOfWork.Messages.Query()
+            .Where(m => consultationIds.Contains(m.ConsultationId) && m.SenderId != currentUserId)
+            .GroupBy(m => m.ConsultationId)
+            .Select(g => new { ConsultationId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.ConsultationId, x => x.Count, cancellationToken);
+
+        // Map to DTO
         var result = new List<ConsultationSummaryDto>();
         foreach (var c in consultations)
         {
             var isClient = c.Client.UserId == currentUserId;
             lastMessageDict.TryGetValue(c.Id, out var lastMsg);
+            unreadCounts.TryGetValue(c.Id, out var unread);
 
             result.Add(new ConsultationSummaryDto
             {
                 Id = c.Id,
-                // 👇 Use the Profile's FullName, not the Identity User's UserName (which is usually the email)
-                OtherUserName = isClient ? c.Lawyer.FullName : c.Client.FullName, 
+                OtherUserName = isClient ? c.Lawyer.FullName : c.Client.FullName,
                 OtherUserImageUrl = isClient ? c.Lawyer.User.ProfileImageUrl : c.Client.User.ProfileImageUrl,
                 OtherUserRole = isClient ? "Lawyer" : "Client",
                 Status = c.Status.ToString(),
@@ -81,11 +90,11 @@ public class GetMyConsultationsHandler : IRequestHandler<GetMyConsultationsQuery
                 LastMessageContent = lastMsg?.Content,
                 LastMessageDate = lastMsg?.CreatedAt,
                 LastMessageSenderId = lastMsg?.SenderId,
-                IsOnline = false // Can be hooked to SignalR presence later
+                UnreadCount = unread,
+                IsOnline = false
             });
         }
 
-        // Sort by most recent message, fallback to scheduled date
         return result.OrderByDescending(x => x.LastMessageDate ?? x.ScheduledAt).ToList();
     }
 }
