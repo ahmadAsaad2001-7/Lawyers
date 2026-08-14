@@ -36,7 +36,6 @@ public class LawyerPostConfiguration : IEntityTypeConfiguration<LawyerPost>
         builder.HasIndex(p => p.PublishedAt).IsDescending();
         builder.HasIndex(p => p.IsFeatured);
 
-        // Global soft-delete filter (inherited from AuditableEntity)
-        builder.HasQueryFilter(p => !p.IsDeleted);
+        // Soft-delete filtering is configured centrally in AppDbContext.
     }
 }

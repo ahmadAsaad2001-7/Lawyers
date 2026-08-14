@@ -1,4 +1,5 @@
-﻿using Lawyers.Application.Interfaces;
+﻿using System.Linq.Expressions;
+using Lawyers.Application.Interfaces;
 using Lawyers.Domain.Entities;
 using Lawyers.Infrastructure.Data.Configuration;
 using Microsoft.AspNetCore.Identity;
@@ -67,6 +68,9 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
         builder.ApplyConfiguration(new FreeConsultationMessageConfiguration()); // 👈 2. Applied Configuration
         builder.ApplyConfiguration(new LawyerPostConfiguration());
         builder.ApplyConfiguration(new PostAttachmentConfiguration());
+
+        ApplySoftDeleteQueryFilters(builder);
+
         var defaultRowVersion = new byte[] { 0, 0, 0, 0, 0, 0, 0, 0 };
     
         foreach (var entityType in builder.Model.GetEntityTypes())
@@ -78,6 +82,24 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<int>, int>
             }
         }
     }
-}
 
+    private static void ApplySoftDeleteQueryFilters(ModelBuilder builder)
+    {
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            if (entityType.ClrType == null ||
+                entityType.FindProperty(nameof(BaseEntity.IsDeleted))?.ClrType != typeof(bool))
+            {
+                continue;
+            }
+
+            var entity = Expression.Parameter(entityType.ClrType, "entity");
+            var isDeleted = Expression.Property(entity, nameof(BaseEntity.IsDeleted));
+            var notDeleted = Expression.Equal(isDeleted, Expression.Constant(false));
+
+            builder.Entity(entityType.ClrType)
+                .HasQueryFilter(Expression.Lambda(notDeleted, entity));
+        }
+    }
+}
 

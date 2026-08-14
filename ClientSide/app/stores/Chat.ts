@@ -230,15 +230,18 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         pc = new RTCPeerConnection({ iceServers, iceCandidatePoolSize: 10 });
-        pc.onicecandidate = (e) => {
-            if (e.candidate && activeCallId.value != null) {
-                safeInvoke('SendIceCandidate', activeCallId.value, { candidate: e.candidate.toJSON(), consultationId: activeCallId.value });
-            }
-        };
         pc.ontrack = (e) => {
-            const stream = remoteStream.value ?? new MediaStream();
-            if (!stream.getTracks().some(track => track.id === e.track.id)) stream.addTrack(e.track);
-            remoteStream.value = stream;
+            console.log('🎯 ontrack fired:', e.track.kind, e.track.id);
+            console.log('   enabled:', e.track.enabled, 'muted:', e.track.muted);
+            if (!remoteStream.value) {
+                remoteStream.value = new MediaStream();
+            }
+            // Avoid duplicate tracks
+            if (!remoteStream.value.getTracks().some(track => track.id === e.track.id)) {
+                remoteStream.value.addTrack(e.track);
+            }
+            console.log('Local tracks:', stream.getTracks().map(t => `${t.kind}:${t.enabled}`));
+            console.log('Remote track added:', e.track.kind, e.track.id);
         };
         pc.onconnectionstatechange = () => {
             if (!pc) return;
@@ -260,20 +263,10 @@ export const useChatStore = defineStore('chat', () => {
             }
         };
         pc.onicecandidate = (e) => {
-            if (e.candidate) {
-                console.log('[WebRTC] ICE candidate:', e.candidate.candidate);
-            }
             if (e.candidate && activeCallId.value != null) {
                 safeInvoke('SendIceCandidate', activeCallId.value, { candidate: e.candidate.toJSON(), consultationId: activeCallId.value });
             }
         };
-        pc.oniceconnectionstatechange = () => {
-            if (pc) {
-                console.log('[WebRTC] ICE connection state changed:', pc.iceConnectionState);
-                callDiagnostic.value = `ICE connection: ${pc.iceConnectionState}`;
-            }
-        };
-        
         pc.oniceconnectionstatechange = () => {
             if (pc) callDiagnostic.value = `ICE connection: ${pc.iceConnectionState}`;
         };

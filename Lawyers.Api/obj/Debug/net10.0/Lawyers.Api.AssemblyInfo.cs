@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Lawyers.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+7922f014e06a7bcc13a7406a754e770da72058f8")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4a57ba23893ac79904a79706f2f1ee04e9aa4226")]
 [assembly: System.Reflection.AssemblyProductAttribute("Lawyers.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Lawyers.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

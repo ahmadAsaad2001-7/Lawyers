@@ -19,7 +19,11 @@ public class Repository<T> : IRepository<T> where T : class
 
     public async Task<T?> GetByIdAsync(int id, CancellationToken cancellationToken = default)
     {
-        return await _dbSet.FindAsync(new object[] { id }, cancellationToken);
+        // FindAsync bypasses EF Core global query filters. Use a LINQ query so
+        // soft-deleted entities are excluded consistently with other reads.
+        return await _dbSet.SingleOrDefaultAsync(
+            entity => EF.Property<int>(entity, nameof(BaseEntity.Id)) == id,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<T>> GetAllAsync(CancellationToken cancellationToken = default)
