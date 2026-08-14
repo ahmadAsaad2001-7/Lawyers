@@ -5,6 +5,10 @@ export default defineNuxtConfig({
 
     // Tells Nuxt that your code (pages, components, etc.) is in the 'app' directory
     srcDir: 'app/',
+    // Keep static assets in the project-root public directory rather than app/public.
+    dir: {
+        public: '../public',
+    },
     modules: ['@pinia/nuxt',
     '@nuxtjs/tailwindcss',
     ],

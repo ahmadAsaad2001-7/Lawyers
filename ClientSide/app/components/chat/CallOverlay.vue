@@ -3,7 +3,6 @@ import { ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { useChatStore } from '~/stores/Chat';
 
 const store = useChatStore();
-
 const localVideo = ref<HTMLVideoElement | null>(null);
 const remoteVideo = ref<HTMLVideoElement | null>(null);
 const remoteAudio = ref<HTMLAudioElement | null>(null);
@@ -11,26 +10,35 @@ const audioBlocked = ref(false);
 
 const tryPlay = async (el: HTMLMediaElement | null): Promise<boolean> => {
   if (!el) return false;
-  try {
-    await el.play();
-    return true;
-  } catch {
-    return false;
-  }
+  try { await el.play(); return true; } catch { return false; }
 };
+
+
+
 
 const playAll = async () => {
-  // The video is muted, so its play() will succeed.
-  await tryPlay(remoteVideo.value);
-  // The audio element is not muted, may be blocked.
-  const ok = await tryPlay(remoteAudio.value);
-  audioBlocked.value = store.callState === 'in-call' && !ok;
-  if (ok) {
-    document.removeEventListener('pointerdown', onTap);
+  if (store.callMode === 'video') {
+    // For video calls, use the video element for both video and audio
+    if (remoteVideo.value && store.remoteStream) {
+      // Start muted (already muted in template), play, then unmute
+      const ok = await tryPlay(remoteVideo.value);
+      if (ok) {
+        // Unmute after playback has started; this is usually allowed after user gesture
+        remoteVideo.value.muted = false;
+        audioBlocked.value = false;
+        document.removeEventListener('pointerdown', onTap);
+      } else {
+        audioBlocked.value = true;
+      }
+    }
+  } else {
+    // Audio-only: use audio element
+    const ok = await tryPlay(remoteAudio.value);
+    audioBlocked.value = store.callState === 'in-call' && !ok;
+    if (ok) document.removeEventListener('pointerdown', onTap);
   }
 };
 
-// Any user interaction during a call retries audio playback.
 const onTap = () => {
   if (store.callState === 'in-call') {
     playAll();
@@ -40,30 +48,29 @@ const onTap = () => {
 onMounted(() => document.addEventListener('pointerdown', onTap));
 onBeforeUnmount(() => document.removeEventListener('pointerdown', onTap));
 
-// Watch remoteStream and assign the whole stream to both elements
+// Watch remoteStream and callMode
 watch(
-    
-    () => store.remoteStream,
-    async (stream) => {
-      const audioTracks = store.remoteStream?.getAudioTracks();
-      console.log('Audio tracks in remoteStream:', audioTracks?.length);
-      if (audioTracks && audioTracks.length > 0) {
-        console.log('Setting audio element srcObject');
-      }
+    [() => store.remoteStream, () => store.callMode, () => store.callState],
+    async () => {
       await nextTick();
-      if (stream) {
-        if (remoteVideo.value) {
-          // video element gets the full stream but is muted
-          remoteVideo.value.srcObject = stream;
-        }
-        if (remoteAudio.value) {
-          // audio element gets the full stream and plays audio
-          remoteAudio.value.srcObject = stream;
-          // Attempt to play (may be blocked)
-          await playAll();
+      if (store.remoteStream) {
+        if (store.callMode === 'video') {
+          // Assign full stream to video element
+          if (remoteVideo.value) {
+            remoteVideo.value.srcObject = store.remoteStream;
+            // Ensure it's muted initially
+            remoteVideo.value.muted = true;
+            await playAll();
+          }
+          // Do not assign to audio element for video calls to avoid double audio
+        } else {
+          // Audio-only: assign to audio element
+          if (remoteAudio.value) {
+            remoteAudio.value.srcObject = store.remoteStream;
+            await playAll();
+          }
         }
       } else {
-        // Cleanup if remoteStream becomes null
         if (remoteVideo.value) remoteVideo.value.srcObject = null;
         if (remoteAudio.value) remoteAudio.value.srcObject = null;
         audioBlocked.value = false;
@@ -72,7 +79,7 @@ watch(
     { immediate: true }
 );
 
-// Watch local stream and call state separately for local video and play triggers
+// Watch local stream for preview
 watch(
     () => store.localStream,
     async (stream) => {
@@ -84,24 +91,15 @@ watch(
     { immediate: true }
 );
 
-watch(
-    () => store.callState,
-    async (state) => {
-      await nextTick();
-      if (state === 'in-call') {
-        await playAll();
-      } else if (state === 'idle') {
-        audioBlocked.value = false;
-      }
-    }
-);
+// Cleanup on unmount
+
 </script>
 
 <template>
   <Teleport to="body">
-    <!-- ═══ MEDIA LAYER: always mounted, visibility via v-show ═══ -->
+    <!-- Ringtone audio elements (hidden) -->
 
-    <!-- Remote VIDEO (kept MUTED so it can always autoplay; sound comes from <audio>) -->
+    <!-- Remote VIDEO (muted initially; will unmute after play) -->
     <video
         ref="remoteVideo"
         muted
@@ -110,7 +108,7 @@ watch(
         class="fixed inset-0 z-40 h-full w-full bg-gray-900 object-contain"
     ></video>
 
-    <!-- Local video (muted, for preview) -->
+    <!-- Local video preview -->
     <video
         ref="localVideo"
         muted
@@ -119,11 +117,10 @@ watch(
         class="fixed bottom-24 start-4 z-40 h-28 w-40 rounded-xl border-2 border-white/30 object-cover shadow-lg"
     ></video>
 
-
-
+    <!-- Audio element used ONLY for audio-only calls -->
     <audio ref="remoteAudio" autoplay></audio>
 
-
+    <!-- Audio-call backdrop -->
     <div
         v-show="store.callState === 'in-call' && store.callMode === 'audio'"
         class="fixed inset-0 z-40 flex items-center justify-center bg-gray-900"
@@ -131,7 +128,7 @@ watch(
       <div class="text-6xl text-white">🎙️</div>
     </div>
 
-    <!-- Button shown if audio autoplay is blocked -->
+    <!-- Button shown if autoplay is blocked -->
     <button
         v-if="audioBlocked"
         @click="playAll"
@@ -140,7 +137,9 @@ watch(
       🔊 فعّل الصوت
     </button>
 
-    
+
+
+
     <!-- ═══ Incoming call dialog ═══ -->
     <div v-if="store.callState === 'incoming' && store.incomingCall" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div class="w-80 rounded-2xl bg-white p-8 text-center shadow-xl" dir="rtl">

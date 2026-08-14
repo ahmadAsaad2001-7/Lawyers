@@ -1,33 +1,30 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { computed, ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
 import { useChatStore } from '~/stores/Chat';
 import ChatThread from '~/components/chat/ChatThread.vue';
 import ChatSideBar from '~/components/chat/ChatSideBar.vue';
 import FreeInquiryReply from '~/components/chat/FreeInquiryReply.vue';
-import CallOverlay from '~/components/chat/CallOverlay.vue';
 import type { ChatSummary, FreeInquiry } from '~/types/chat';
 
 const authStore = useAuthStore();
 const chatStore = useChatStore();
-const config = useRuntimeConfig();
 
-const token = computed(() => authStore.token || '');
 const isLawyer = computed(() => authStore.user?.role === 'Lawyer');
 
-const chats = ref<ChatSummary[]>([]);
-const inquiries = ref<FreeInquiry[]>([]);
-const isLoading = ref(false);
+// Use store data directly
+const chats = computed(() => chatStore.consultations);
+const inquiries = computed(() => chatStore.inquiries);
+const isLoading = ref(false); // optionally bind to store.connectionStatus
 
 const activeChatId = ref<number | null>(null);
 const activeInquiryId = ref<number | null>(null);
-const activeInquiry = computed(() => inquiries.value.find(i => i.id === activeInquiryId.value) ?? null);
+const activeInquiry = computed(() => chatStore.inquiries.find(i => i.id === activeInquiryId.value) ?? null);
 
-// ✅ Update to use store-level openChat instead of just setting the ID
 const selectChat = (id: number) => {
   activeChatId.value = id;
   activeInquiryId.value = null;
-  chatStore.openChat(id); // This sets active group, clears unread, loads history
+  chatStore.openChat(id);
 };
 
 const selectInquiry = (id: number) => {
@@ -36,58 +33,9 @@ const selectInquiry = (id: number) => {
 };
 
 const handleReplySent = (inquiryId: number) => {
-  const inq = inquiries.value.find(i => i.id === inquiryId);
+  const inq = chatStore.inquiries.find(i => i.id === inquiryId);
   if (inq) inq.isRepliedTo = true;
 };
-
-onMounted(async () => {
-  // Wait for the server to validate the persisted token before treating this
-  // page as authenticated. This avoids loading a stale session as a real user.
-  await authStore.initAuth();
-  if (!authStore.isAuthenticated) {
-    navigateTo('/auth/login');
-    return;
-  }
-
-  isLoading.value = true;
-  try {
-    const base = config.public.apiBase as string;
-    const headers = { Authorization: `Bearer ${token.value}` };
-
-    const [myChats, myInquiries] = await Promise.all([
-      $fetch<ChatSummary[]>(`${base}/consultations/my-consultations`, { headers }),
-      isLawyer.value
-          ? $fetch<FreeInquiry[]>(`${base}/consultations/free-messages`, { headers })
-          : Promise.resolve<FreeInquiry[]>([]),
-    ]);
-
-    chats.value = myChats;
-    inquiries.value = myInquiries;
-
-    // ✅ Seed unread badges from backend, then connect + join ALL consultation groups
-    const unreadMap: Record<number, number> = {};
-    myChats.forEach(c => {
-      if (c.unreadCount && c.unreadCount > 0) {
-        unreadMap[c.id] = c.unreadCount;
-      }
-    });
-    chatStore.seedUnread(unreadMap);
-
-    // ✅ Connect once to SignalR and join all consultation groups
-    const consultationIds = myChats.map(c => c.id);
-    await chatStore.connect(token.value, consultationIds);
-
-  } catch (e) {
-    console.error('Failed to load conversations', e);
-  } finally {
-    isLoading.value = false;
-  }
-});
-
-// ✅ Cleanup connection when leaving the page
-onUnmounted(() => {
-  chatStore.disconnect();
-});
 </script>
 
 <template>
@@ -125,6 +73,6 @@ onUnmounted(() => {
     </div>
 
     <!-- ✅ Global CallOverlay rendered once at page level -->
-    <CallOverlay />
+
   </div>
 </template>
