@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Lawyers.InfraStructure")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4c794bf202412a4849de5e4b1c866f8451e1a092")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fbfa138ff53242d32cf1bca80404cefed2a55065")]
 [assembly: System.Reflection.AssemblyProductAttribute("Lawyers.InfraStructure")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Lawyers.InfraStructure")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
