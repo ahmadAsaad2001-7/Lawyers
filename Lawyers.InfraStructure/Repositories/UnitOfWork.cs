@@ -18,6 +18,9 @@ public class UnitOfWork : IUnitOfWork
     private IRepository<Message>? _messages;
     private IRepository<FreeConsultationMessage> _freeConsultationMessage;
     private IRepository<LawyerPost> _LawyerPosts;
+    private Repository<VoteParticipant> _VoteParticipants;
+    private Repository<AdminVote> _AdminVotes;
+
 
     public UnitOfWork(AppDbContext context)
     {
@@ -32,6 +35,9 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<Message> Messages => _messages ??= new Repository<Message>(_context);
     public IRepository<FreeConsultationMessage> FreeMessages => _freeConsultationMessage??= new Repository<FreeConsultationMessage>(_context);
     public IRepository<LawyerPost> LawyerPosts => _LawyerPosts??=new Repository<LawyerPost>(_context);
+    public IRepository<VoteParticipant> VoteParticipants => _VoteParticipants??=new Repository<VoteParticipant>(_context);
+    public IRepository<AdminVote> AdminVotes => _AdminVotes??=new Repository<AdminVote>(_context);
+
 
     public async Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
     {

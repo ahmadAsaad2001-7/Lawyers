@@ -38,7 +38,19 @@ public class ConsultationConfiguration : IEntityTypeConfiguration<Consultation>
             .WithMany()
             .HasForeignKey(c => c.ClientId)
             .OnDelete(DeleteBehavior.Restrict);
-
+        
+        
+        builder.HasOne(c=>c.Client)
+            .WithMany(cp=>cp.Consultations)
+            .HasForeignKey(c=>c.ClientId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
+        
+        builder.HasOne(c=>c.Lawyer)
+            .WithMany(l=>l.Consultations)
+            .HasForeignKey(c=>c.LawyerId)
+            .OnDelete(DeleteBehavior.Restrict);
+        
         builder.HasOne(c => c.Lawyer)
             .WithMany()
             .HasForeignKey(c => c.LawyerId)

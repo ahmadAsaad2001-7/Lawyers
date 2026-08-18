@@ -18,6 +18,8 @@
         public string Specialization { get; set; } = string.Empty; // e.g., "Family Law", "Corporate"
         public decimal AverageRating { get; set; } = 0.0m;
         public string LawFirmName { get; set; } = string.Empty;
-           public ICollection<LawyerPost> Posts { get; set; } = new List<LawyerPost>();
+        public ICollection<LawyerPost> Posts { get; set; } = new List<LawyerPost>();
+        public ICollection<Consultation> Consultations { get; set; } = new List<Consultation>();
+
     public ICollection<FreeConsultationMessage> FreeMessages { get; set; } = new List<FreeConsultationMessage>();
     }

@@ -121,6 +121,9 @@ namespace Lawyers.InfraStructure.Migrations
                     b.Property<int>("LawyerId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("LawyerProfileId")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("PaymentId")
                         .HasColumnType("integer");
 
@@ -144,6 +147,8 @@ namespace Lawyers.InfraStructure.Migrations
                     b.HasIndex("ClientId");
 
                     b.HasIndex("LawyerId");
+
+                    b.HasIndex("LawyerProfileId");
 
                     b.ToTable("Consultations", (string)null);
                 });
@@ -559,6 +564,9 @@ namespace Lawyers.InfraStructure.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("text");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(256)
@@ -785,7 +793,7 @@ namespace Lawyers.InfraStructure.Migrations
             modelBuilder.Entity("Lawyers.Domain.Entities.Consultation", b =>
                 {
                     b.HasOne("Lawyers.Domain.Entities.ClientProfile", "Client")
-                        .WithMany()
+                        .WithMany("Consultations")
                         .HasForeignKey("ClientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -795,6 +803,10 @@ namespace Lawyers.InfraStructure.Migrations
                         .HasForeignKey("LawyerId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("Lawyers.Domain.Entities.LawyerProfile", null)
+                        .WithMany("Consultations")
+                        .HasForeignKey("LawyerProfileId");
 
                     b.Navigation("Client");
 
@@ -991,6 +1003,11 @@ namespace Lawyers.InfraStructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Lawyers.Domain.Entities.ClientProfile", b =>
+                {
+                    b.Navigation("Consultations");
+                });
+
             modelBuilder.Entity("Lawyers.Domain.Entities.Consultation", b =>
                 {
                     b.Navigation("Payment");
@@ -1003,6 +1020,8 @@ namespace Lawyers.InfraStructure.Migrations
 
             modelBuilder.Entity("Lawyers.Domain.Entities.LawyerProfile", b =>
                 {
+                    b.Navigation("Consultations");
+
                     b.Navigation("FreeMessages");
 
                     b.Navigation("Posts");

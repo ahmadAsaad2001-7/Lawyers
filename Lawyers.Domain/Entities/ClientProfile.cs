@@ -7,4 +7,6 @@ public class ClientProfile : AuditableEntity
     
     public string FullName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
+    public ICollection<Consultation> Consultations { get; set; } = new List<Consultation>();
+
 }

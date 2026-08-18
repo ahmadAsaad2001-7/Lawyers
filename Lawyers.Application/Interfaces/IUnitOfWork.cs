@@ -13,6 +13,8 @@ public interface IUnitOfWork : IDisposable
     IRepository<Message> Messages { get; }
     IRepository<FreeConsultationMessage> FreeMessages { get; }
     IRepository<LawyerPost> LawyerPosts { get; }
+    IRepository<VoteParticipant> VoteParticipants { get; }
+    IRepository<AdminVote>  AdminVotes { get; }
     Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted);
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();
