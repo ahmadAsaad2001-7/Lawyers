@@ -4,26 +4,19 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lawyers.Application.Features.Consultations.Commands;
-
-public class SendFreeMessageCommandHandler: IRequestHandler<SendFreeMessageCommand,bool>
+public class SendFreeMessageCommandHandler : IRequestHandler<SendFreeMessageCommand, bool>
 {
     private readonly IUnitOfWork _unitOfWork;
-    public SendFreeMessageCommandHandler(IUnitOfWork unitOfWork)
+    private readonly INotificationService _notificationService; // ✅ new
+
+    public SendFreeMessageCommandHandler(IUnitOfWork unitOfWork, INotificationService notificationService)
     {
         _unitOfWork = unitOfWork;
+        _notificationService = notificationService;
     }
-    
-    public async Task<bool> Handle(SendFreeMessageCommand request, CancellationToken cancellationToken)
-    { // 
-    //     var hasSentBefore = await _unitOfWork.FreeMessages.Query().AnyAsync(m => m.LawyerId == request.LawyerId && m.SenderIpAddress == request.IpAddress, cancellationToken);
-    //     
-    //     if (hasSentBefore)
-    //     {
-    //         // You can throw a custom exception here to catch in the controller
-    //         throw new InvalidOperationException("You have already sent a free message to this lawyer.");
-    //     }
 
-        // 2. Map and Save the message
+    public async Task<bool> Handle(SendFreeMessageCommand request, CancellationToken cancellationToken)
+    {
         var message = new FreeConsultationMessage
         {
             LawyerId = request.LawyerId,
@@ -37,6 +30,21 @@ public class SendFreeMessageCommandHandler: IRequestHandler<SendFreeMessageComma
         await _unitOfWork.FreeMessages.AddAsync(message, cancellationToken);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // ✅ Notify the lawyer — a potential client is reaching out and
+        // they'd otherwise have no idea unless they happen to check.
+        var lawyerProfile = await _unitOfWork.LawyerProfiles.GetByIdAsync(request.LawyerId, cancellationToken);
+        if (lawyerProfile != null)
+        {
+            await _notificationService.NotifyAsync(
+                lawyerProfile.UserId,
+                "استفسار جديد",
+                $"{request.Name} أرسل لك رسالة: \"{Truncate(request.Content, 80)}\"",
+                cancellationToken);
+        }
+
         return true;
     }
+
+    private static string Truncate(string text, int maxLength) =>
+        text.Length <= maxLength ? text : text[..maxLength] + "...";
 }

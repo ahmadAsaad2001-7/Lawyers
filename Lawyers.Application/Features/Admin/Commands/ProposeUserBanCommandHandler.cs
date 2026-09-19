@@ -23,8 +23,15 @@ public class ProposeUserBanHandler : IRequestHandler<ProposeUserBanCommand, int>
 
         // Prevent banning other admins (optional safety check)
         var targetUser = await _unitOfWork.Users.Query().FirstOrDefaultAsync(u => u.Id == request.TargetUserId, ct);
-        if (targetUser == null) throw new Exception("Target user not found.");
-        if (targetUser.Role == Domain.Entities.Enums.Roles.Admin) throw new Exception("Cannot ban another admin.");
+        if (targetUser == null) throw new InvalidOperationException("Target user not found.");
+        if (targetUser.Role == Domain.Entities.Enums.Roles.Admin) throw new InvalidOperationException("Cannot ban another admin.");
+
+        var hasActiveVote = await _unitOfWork.AdminVotes.Query()
+            .AnyAsync(vote => vote.TargetUserId == request.TargetUserId &&
+                              vote.ActionType == "BanUser" &&
+                              !vote.IsResolved, ct);
+        if (hasActiveVote)
+            throw new InvalidOperationException("There is already an active ban vote for this user.");
 
         var currentAdminId = _currentUserService.UserId!.Value;
 

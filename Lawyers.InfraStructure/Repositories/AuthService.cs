@@ -1,11 +1,13 @@
 ﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Lawyers.Application.DTOs.Auth;
 using Lawyers.Application.Interfaces;
 using Lawyers.Domain.Entities;
 using Lawyers.Domain.Entities.Enums;
 using Lawyers.Domain.ValueObjects;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 
@@ -15,10 +17,10 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
-    private readonly IEmailService _emailService; // ✅ 1. Inject Email Service
-    private IUnitOfWork _unitOfWork;
+    private readonly IEmailService _emailService;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public AuthService(UserManager<User> userManager, IConfiguration configuration, IEmailService emailService,IUnitOfWork unitOfWork)
+    public AuthService(UserManager<User> userManager, IConfiguration configuration, IEmailService emailService, IUnitOfWork unitOfWork)
     {
         _userManager = userManager;
         _configuration = configuration;
@@ -26,14 +28,16 @@ public class AuthService : IAuthService
         _unitOfWork = unitOfWork;
     }
 
-     public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
+   public async Task<AuthResponse> RegisterAsync(RegisterRequest request)
 {
+    // ✅ Lawyers don't get the real Lawyer role until an admin vote approves them.
+    var initialRole = request.Role == Roles.Lawyer ? Roles.PendingLawyer : request.Role;
+
     var user = new User
     {
         UserName = request.Email,
         Email = request.Email,
-        // ✅ Use the enum value directly (will store as integer)
-        Role = request.Role  
+        Role = initialRole
     };
 
     var result = await _userManager.CreateAsync(user, request.Password);
@@ -44,8 +48,7 @@ public class AuthService : IAuthService
         throw new ApplicationException($"Registration failed: {errors}");
     }
 
-    // ✅ Create the profile based on the role
-    if (request.Role == Roles.Client) // Client
+    if (initialRole == Roles.Client)
     {
         await _unitOfWork.ClientProfiles.AddAsync(new ClientProfile
         {
@@ -57,15 +60,15 @@ public class AuthService : IAuthService
             CreatedByUserId = user.Id
         });
     }
-    else if (request.Role == Roles.Lawyer) // Lawyer
+    else if (initialRole == Roles.PendingLawyer)
     {
         await _unitOfWork.LawyerProfiles.AddAsync(new LawyerProfile
         {
             UserId = user.Id,
             FullName = request.FullName ?? user.Email,
-            Bio = "New lawyer profile",
-            HourlyRate = 100.00m,
-            Specialization = "General",
+            Bio = request.Bio ?? "New lawyer profile",
+            HourlyRate = request.HourlyRate ?? 100.00m,
+            Specialization = request.Specialization ?? "General",
             Address = new Address
             {
                 Street = request.Address?.Street ?? "",
@@ -74,7 +77,9 @@ public class AuthService : IAuthService
                 Country = request.Address?.Country ?? "",
                 PostalCode = request.Address?.PostalCode ?? ""
             },
-            BarLicenseNumber = "PENDING",
+            // ✅ actually store what they submitted instead of hardcoding "PENDING" —
+            // admins need something real to look at when they vote.
+            BarLicenseNumber = request.BarLicenseNumber ?? "",
             IsVerified = false,
             AverageRating = 0.0m,
             LawFirmName = request.LawFirmName ?? "",
@@ -86,7 +91,6 @@ public class AuthService : IAuthService
 
     await _unitOfWork.SaveChangesAsync();
 
-    // Send verification email...
     var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
     var frontendUrl = _configuration["FrontendUrl"] ?? "https://localhost:3000";
     var verificationLink = $"{frontendUrl}/auth/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
@@ -95,42 +99,161 @@ public class AuthService : IAuthService
     return new AuthResponse { Token = null, Email = user.Email, Role = user.Role };
 }
 
+    // ✅ FIXED: ExternalLoginAsync
+    public async Task<AuthResponseDto> ExternalLoginAsync(string email, string name, string? pictureUrl, Roles? role)    {
+        var user = await _userManager.FindByEmailAsync(email);
+
+        // FIX 1: Changed 'user == 0' to 'user == null'
+        if (user == null)
+        {
+            var assignedRole = role == Roles.Lawyer ? Roles.PendingLawyer : (role ?? Roles.Client);
+
+            user = new User
+            {
+                UserName = email,
+                Email = email,
+                EmailConfirmed = true,
+                Role = assignedRole,
+                ProfileImageUrl = pictureUrl
+            };
+
+            var createResult = await _userManager.CreateAsync(user);
+            if (!createResult.Succeeded)
+                throw new Exception("Failed to create user from Google account.");
+
+            if (assignedRole == Roles.Client)
+            {
+                await _unitOfWork.ClientProfiles.AddAsync(new ClientProfile
+                {
+                    UserId = user.Id, FullName = name, PhoneNumber = string.Empty,
+                    IsDeleted = false, CreatedAt = DateTime.UtcNow, CreatedByUserId = user.Id
+                });
+            }
+            else if (assignedRole == Roles.PendingLawyer)
+            {
+                await _unitOfWork.LawyerProfiles.AddAsync(new LawyerProfile
+                {
+                    UserId = user.Id,
+                    FullName = name,
+                    Bio = "New lawyer profile",
+                    HourlyRate = 100.00m,
+                    Specialization = "General",
+                    Address = new Address { Street = "", City = "", State = "", Country = "", PostalCode = "" },
+                    BarLicenseNumber = "", // empty, not "PENDING" — matches your RegisterAsync convention now
+                    IsVerified = false,
+                    AverageRating = 0.0m,
+                    LawFirmName = "",
+                    IsDeleted = false,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedByUserId = user.Id
+                });
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+        else
+        {
+            var needsUpdate = false;
+
+            if (!user.EmailConfirmed)
+            {
+                user.EmailConfirmed = true;
+                needsUpdate = true;
+            }
+
+            if (!string.IsNullOrEmpty(pictureUrl) && user.ProfileImageUrl != pictureUrl)
+            {
+                user.ProfileImageUrl = pictureUrl; // ✅ keep avatar in sync on repeat logins
+                needsUpdate = true;
+            }
+
+            if (needsUpdate)
+                await _userManager.UpdateAsync(user);
+        }
+
+        var userWithProfiles = await _userManager.Users
+            .Include(u => u.LawyerProfile)
+            .Include(u => u.ClientProfile)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+        bool isPlatformVerified = true;
+        string? fullName = name;
+
+        if (userWithProfiles?.LawyerProfile != null)
+        {
+            isPlatformVerified = userWithProfiles.LawyerProfile.IsVerified;
+            fullName = userWithProfiles.LawyerProfile.FullName;
+        }
+        else if (userWithProfiles?.ClientProfile != null)
+        {
+            fullName = userWithProfiles.ClientProfile.FullName;
+        }
+
+        var authResult = await GenerateToken(user, isPlatformVerified, fullName, user.ProfileImageUrl);
+
+        return new AuthResponseDto
+        {
+            UserId = user.Id,
+            UserName = user.UserName,
+            Token = authResult.Token,
+            Email = user.Email,
+            Role = user.Role.ToString(),
+            FullName = fullName,
+            ProfileImageUrl = user.ProfileImageUrl,
+            IsPlatformVerified = isPlatformVerified,
+            Message = "Google login successful."
+        };
+    }
+
     public async Task<AuthResponse> LoginAsync(LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
         if (user == null) throw new UnauthorizedAccessException("Invalid email or password.");
 
-        // ✅ 4. BLOCK LOGIN IF EMAIL IS NOT VERIFIED
         var isEmailConfirmed = await _userManager.IsEmailConfirmedAsync(user);
         if (!isEmailConfirmed)
-        {
-            throw new UnauthorizedAccessException("Please verify your email address before logging in. Check your inbox or spam folder.");
-        }
+            throw new UnauthorizedAccessException("Please verify your relationship before logging in.");
 
         var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
         if (!isPasswordValid) throw new UnauthorizedAccessException("Invalid email or password.");
 
-        return await GenerateToken(user);
+        var userWithProfiles = await _userManager.Users
+            .Include(u => u.LawyerProfile)
+            .Include(u => u.ClientProfile)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == user.Id);
+
+        bool isPlatformVerified = true;
+        string? fullName = user.UserName;
+        string? profileImage = user.ProfileImageUrl; // Note: Ensure this exists on User, otherwise remove
+
+        if (userWithProfiles?.LawyerProfile != null)
+        {
+            isPlatformVerified = userWithProfiles.LawyerProfile.IsVerified;
+            fullName = userWithProfiles.LawyerProfile.FullName;
+        }
+        else if (userWithProfiles?.ClientProfile != null)
+        {
+            fullName = userWithProfiles.ClientProfile.FullName;
+        }
+
+        return await GenerateToken(user, isPlatformVerified, fullName, profileImage);
     }
+
     public async Task<bool> ForgotPasswordAsync(string email, string frontendUrl)
     {
         var user = await _userManager.FindByEmailAsync(email);
     
-        // 🔒 SECURITY: Always return true, even if the email doesn't exist. 
-        // This prevents attackers from "enumerating" (guessing) which emails are registered.
         if (user == null || !await _userManager.IsEmailConfirmedAsync(user))
         {
             return true; 
         }
 
-        // Generate the secure reset token
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = Uri.EscapeDataString(token);
-    
-        // Create the link for the frontend
         var resetLink = $"{frontendUrl}/auth/reset-password?email={Uri.EscapeDataString(email)}&token={encodedToken}";
 
-        // Send the email
         await _emailService.SendPasswordResetEmailAsync(user.Email, resetLink);
 
         return true;
@@ -144,7 +267,6 @@ public class AuthService : IAuthService
             throw new ApplicationException("Invalid password reset request.");
         }
 
-        // Identity handles the token validation and password hashing automatically
         var result = await _userManager.ResetPasswordAsync(user, token, newPassword);
     
         if (!result.Succeeded)
@@ -155,7 +277,40 @@ public class AuthService : IAuthService
 
         return true;
     }
-    private async Task<AuthResponse> GenerateToken(User user)
+    public async Task<AuthResponse> RefreshTokenAsync(int userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+            throw new UnauthorizedAccessException("User not found.");
+
+        if (user.IsDeleted)
+            throw new UnauthorizedAccessException("This account is no longer active.");
+
+        var userWithProfiles = await _userManager.Users
+            .Include(u => u.LawyerProfile)
+            .Include(u => u.ClientProfile)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == userId);
+
+        bool isPlatformVerified = true;
+        string? fullName = user.UserName;
+        string? profileImage = user.ProfileImageUrl;
+
+        if (userWithProfiles?.LawyerProfile != null)
+        {
+            isPlatformVerified = userWithProfiles.LawyerProfile.IsVerified;
+            fullName = userWithProfiles.LawyerProfile.FullName;
+        }
+        else if (userWithProfiles?.ClientProfile != null)
+        {
+            fullName = userWithProfiles.ClientProfile.FullName;
+        }
+
+
+        return await GenerateToken(user, isPlatformVerified, fullName, profileImage);
+    }
+
+    private async Task<AuthResponse> GenerateToken(User user, bool isPlatformVerified, string? fullName, string? profileImage)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT Secret Key is missing.");
@@ -167,13 +322,12 @@ public class AuthService : IAuthService
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.UserName ?? user.Email ?? string.Empty),
             new Claim(ClaimTypes.Email, user.Email ?? string.Empty),
-            new Claim(ClaimTypes.Role, user.Role.ToString())
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim("IsPlatformVerified", isPlatformVerified.ToString().ToLower())
         };
 
         if (!double.TryParse(jwtSettings["ExpirationInMinutes"], out var expirationMinutes))
-        {
             expirationMinutes = 60;
-        }
 
         var token = new JwtSecurityToken(
             issuer: jwtSettings["Issuer"],
@@ -185,11 +339,14 @@ public class AuthService : IAuthService
 
         return new AuthResponse
         {
-            UserId = user.Id,                                    // ✅ Added
-            UserName = user.UserName ?? user.Email,              // ✅ Added (Fallback to email)
+            UserId = user.Id,
+            UserName = user.UserName ?? user.Email,
             Token = new JwtSecurityTokenHandler().WriteToken(token),
             Email = user.Email,
             Role = user.Role,
+            FullName = fullName,
+            ProfileImageUrl = profileImage,
+            IsPlatformVerified = isPlatformVerified
         };
     }
 }

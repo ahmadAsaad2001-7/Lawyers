@@ -6,7 +6,7 @@ public static  class OpenApiConfigure
 {
     public static void OpenApiConfiguration(this WebApplication app)
     {
-        if (app.Environment.IsDevelopment())
+        if (true)
         {
             app.MapOpenApi();
             app.MapScalarApiReference(options =>

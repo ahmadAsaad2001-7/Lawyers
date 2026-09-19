@@ -1,8 +1,8 @@
-﻿using Lawyers.Application.Features.Consultation.Events; // 👈 Add this
+﻿using Lawyers.Application.Features.Consultation.Events;
 using Lawyers.Application.Interfaces;
 using Lawyers.Domain.Entities;
 using Lawyers.Domain.Entities.Enums;
-using MediatR; // 👈 Needed for IPublisher
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lawyers.Application.Features.Payments.Commands;
@@ -10,17 +10,14 @@ namespace Lawyers.Application.Features.Payments.Commands;
 public class NotifyPaymentSuccessCommandHandler : IRequestHandler<NotifyPaymentSuccessCommand, bool>
 {
     private readonly IUnitOfWork _unitOfWork;
-    private readonly INotificationService _notificationService;
-    private readonly IPublisher _publisher; // 👈 ADD THIS
+    private readonly IPublisher _publisher;
 
     public NotifyPaymentSuccessCommandHandler(
-        IUnitOfWork unitOfWork, 
-        INotificationService notificationService,
-        IPublisher publisher) // 👈 ADD THIS
+        IUnitOfWork unitOfWork,
+        IPublisher publisher)
     {
         _unitOfWork = unitOfWork;
-        _notificationService = notificationService;
-        _publisher = publisher; // 👈 ADD THIS
+        _publisher = publisher;
     }
 
     public async Task<bool> Handle(NotifyPaymentSuccessCommand request, CancellationToken cancellationToken)
@@ -47,7 +44,6 @@ public class NotifyPaymentSuccessCommandHandler : IRequestHandler<NotifyPaymentS
         {
             payment = await _unitOfWork.Payments.Query()
                 .FirstOrDefaultAsync(p => p.ConsultationId == consultation.Id, cancellationToken);
-
             if (payment is null) return false;
             consultation.Payment = payment;
         }
@@ -55,25 +51,19 @@ public class NotifyPaymentSuccessCommandHandler : IRequestHandler<NotifyPaymentS
         // 5. Update payment + Domain Logic
         payment.Status = PaymentStatus.Succeeded;
         payment.TransactionDate = DateTime.UtcNow;
-        consultation.MarkAsConfirmed(); 
-
+        consultation.MarkAsConfirmed();
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        // 6. Direct Notification (Optional but good for immediate email/SMS)
-        await _notificationService.SendBookingConfirmedAsync(
-            consultation.Client.UserId,
-            consultation.Lawyer.UserId,
-            consultation.ScheduledAt);
-
-        // 🚀 7. PUBLISH THE DOMAIN EVENT (THIS IS THE MISSING PIECE!) 🚀
-        // This triggers your ConsultationConfirmedSignalRHandler to push the 
-        // real-time notification to the frontend via SignalR.
-        await _publisher.Publish(new ConsultationConfirmedEvent 
-        { 
-            ConsultationId = consultation.Id, 
-            ClientId = consultation.Client.UserId, 
-            LawyerId = consultation.Lawyer.UserId, 
-            ScheduledAt = consultation.ScheduledAt 
+        // 6. Publish the domain event — the SOLE notification trigger.
+        // ConsultationConfirmedSignalRHandler subscribes to this and calls
+        // INotificationService.SendBookingConfirmedAsync itself. A direct call
+        // here as well would double-send the same push to both parties.
+        await _publisher.Publish(new ConsultationConfirmedEvent
+        {
+            ConsultationId = consultation.Id,
+            ClientId = consultation.Client.UserId,
+            LawyerId = consultation.Lawyer.UserId,
+            ScheduledAt = consultation.ScheduledAt
         }, cancellationToken);
 
         return true;

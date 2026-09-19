@@ -12,11 +12,9 @@ public class ConsultationConfiguration : IEntityTypeConfiguration<Consultation>
 
         builder.HasKey(c => c.Id);
 
-        // BaseEntity properties
         builder.Property(c => c.IsDeleted).HasDefaultValue(false);
         builder.Property(c => c.RowVersion).IsRowVersion();
 
-        // AuditableEntity properties
         builder.Property(c => c.CreatedAt).IsRequired();
         builder.Property(c => c.CreatedByUserId).IsRequired(false);
         builder.Property(c => c.LastModifiedAt).IsRequired(false);
@@ -24,39 +22,26 @@ public class ConsultationConfiguration : IEntityTypeConfiguration<Consultation>
         builder.Property(c => c.DeletedAt).IsRequired(false);
         builder.Property(c => c.DeletedByUserId).IsRequired(false);
 
-        // Specific properties
         builder.Property(c => c.ScheduledAt).IsRequired();
         builder.Property(c => c.DurationMinutes).IsRequired();
 
-        // Store Enum as string in DB
         builder.Property(c => c.Status)
             .HasConversion<string>()
             .HasMaxLength(20);
 
-        // Relationships
+        // ✅ REMOVED: the duplicate no-collection HasOne(...).WithMany() calls
+        // for Client and Lawyer that used to precede these — they were dead
+        // (immediately overridden by the calls below) and just noise/risk.
         builder.HasOne(c => c.Client)
-            .WithMany()
+            .WithMany(cp => cp.Consultations)
             .HasForeignKey(c => c.ClientId)
             .OnDelete(DeleteBehavior.Restrict);
-        
-        
-        builder.HasOne(c=>c.Client)
-            .WithMany(cp=>cp.Consultations)
-            .HasForeignKey(c=>c.ClientId)
-            .OnDelete(DeleteBehavior.Restrict);
-        
-        
-        builder.HasOne(c=>c.Lawyer)
-            .WithMany(l=>l.Consultations)
-            .HasForeignKey(c=>c.LawyerId)
-            .OnDelete(DeleteBehavior.Restrict);
-        
+
         builder.HasOne(c => c.Lawyer)
-            .WithMany()
+            .WithMany(l => l.Consultations)
             .HasForeignKey(c => c.LawyerId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // 1-to-1 with Payment (Payment holds ConsultationId FK)
         builder.HasOne(c => c.Payment)
             .WithOne(p => p.Consultation)
             .HasForeignKey<Payment>(p => p.ConsultationId)

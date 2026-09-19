@@ -1,7 +1,7 @@
 import { ref, onBeforeUnmount } from 'vue';
 import type { HubConnection } from '@microsoft/signalr';
 
-export type CallMode = 'video' | 'audio';
+type CallMode = 'video' | 'audio';
 
 const RTC_CONFIG: RTCConfiguration = {
     iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }],

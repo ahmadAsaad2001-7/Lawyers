@@ -1,4 +1,13 @@
 import { defineStore } from 'pinia'
+import { useChatStore } from '~/stores/Chat'
+
+export interface AddressPayload {
+    street: string
+    city: string
+    state: string
+    country: string
+    postalCode: string
+}
 
 export interface AuthResponseDto {
     userId?: number | string
@@ -7,16 +16,23 @@ export interface AuthResponseDto {
     email: string
     role: string
     message?: string
+    fullName?: string
+    profileImageUrl?: string
+    isPlatformVerified?: boolean
 }
 
 export interface RegisterPayload {
     email: string
     password: string
     fullName: string
-    role: number // Enum value (e.g. 1 = Client, 2 = Lawyer)
+    role: number // Enum value matching Roles: 0 = Client, 1 = Lawyer, 2 = PendingLawyer(server-assigned), 3 = Admin
     lawFirmName?: string
-    address?: string
-    phoneNumber?: string
+    address: AddressPayload
+    phoneNumber: string
+    barLicenseNumber?: string
+    specialization?: string
+    bio?: string
+    hourlyRate?: number
 }
 
 export interface UserState {
@@ -24,6 +40,9 @@ export interface UserState {
     userName?: string
     email: string
     role: string
+    fullName?: string
+    profileImageUrl?: string
+    isPlatformVerified?: boolean
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -48,21 +67,44 @@ export const useAuthStore = defineStore('auth', () => {
             const response = await $fetch<AuthResponseDto>('/auth/login', {
                 method: 'POST',
                 baseURL: config.public.apiBase,
-                body: credentials
+                body: credentials,
             })
 
             if (response?.token) {
+                // Clear any previous identity BEFORE applying the new one.
+                // Also tear down any lingering chat/call session from a
+                // prior user on this tab before wiring up the new one.
+                user.value = null
+
+                if (import.meta.client) {
+                    await useChatStore().disconnect()
+                }
+
                 token.value = response.token
-                user.value = {
-                    userId: response.userId,
-                    userName: response.userName,
-                    email: response.email,
-                    role: response.role
+                await fetchMe()
+
+                if (import.meta.client && token.value && user.value) {
+                    await useChatStore().initializeGlobal(
+                        token.value,
+                        user.value.role === 'Lawyer'
+                    )
                 }
             }
             return response
         } finally {
             isLoading.value = false
+        }
+    }
+
+    // GET /api/auth/google -> Google OAuth challenge.
+    // role: pass 'Lawyer' when the user is signing up as a lawyer via Google,
+    // so the backend creates them as PendingLawyer instead of Client.
+    function loginWithGoogle(role?: 'Client' | 'Lawyer') {
+        if (import.meta.client) {
+            const url = role
+                ? `${config.public.apiBase}/auth/google?role=${role}`
+                : `${config.public.apiBase}/auth/google`
+            window.location.href = url
         }
     }
 
@@ -89,27 +131,77 @@ export const useAuthStore = defineStore('auth', () => {
         })
     }
 
+    // Tracks an in-flight /auth/me request so concurrent callers
+    // share one request instead of firing two independent ones.
+    let fetchMePromise: Promise<void> | null = null;
+
     // GET /api/auth/me
     async function fetchMe() {
         if (!token.value) return;
 
+        if (fetchMePromise) {
+            return fetchMePromise;
+        }
+
+        fetchMePromise = (async (): Promise<void> => {
+            try {
+                const response: UserState = await $fetch<UserState>('/auth/me', {
+                    baseURL: config.public.apiBase,
+                    headers: { Authorization: `Bearer ${token.value}` }
+                });
+
+                // Trust the backend's exact enum casing (e.g. "PendingLawyer")
+                // instead of reformatting it — a naive charAt(0).toUpperCase()
+                // transform would mangle multi-word roles like PendingLawyer
+                // if the backend ever sends anything but perfect PascalCase.
+                user.value = {
+                    ...response,
+                    role: response.role ?? '',
+                }
+            } catch (err: any) {
+                // Only log out when the server explicitly says the token is invalid.
+                // SSL/network/500 errors must NOT destroy the session.
+                if (err?.statusCode === 401) {
+                    await logout();
+                } else {
+                    console.warn('[auth] /auth/me failed (network/SSL?), keeping session:', err?.message);
+                }
+            } finally {
+                fetchMePromise = null;
+            }
+        })();
+
+        return fetchMePromise;
+    }
+
+    // POST /api/auth/refresh -> re-issues a JWT reflecting current DB role/verification.
+    // Call this after a "you've been verified" notification, or when a
+    // PendingLawyer dashboard mounts, instead of forcing a full re-login.
+    async function refresh() {
+        if (!token.value) return;
+
         try {
-            const response = await $fetch<UserState>('/auth/me', {
+            const response = await $fetch<AuthResponseDto>('/auth/refresh', {
+                method: 'POST',
                 baseURL: config.public.apiBase,
                 headers: { Authorization: `Bearer ${token.value}` }
             });
-            user.value = response;
+
+            if (response?.token) {
+                token.value = response.token;
+                await fetchMe();
+            }
         } catch (err: any) {
-            // ✅ Only log out when the server explicitly says the token is invalid.
-            // SSL/network/500 errors must NOT destroy the session.
+            // Same policy as fetchMe: only a real 401 means the session is dead.
             if (err?.statusCode === 401) {
-                logout();
+                await logout();
             } else {
-                console.warn('[auth] /auth/me failed (network/SSL?), keeping session:', err?.message);
+                console.warn('[auth] refresh failed:', err?.message);
             }
         }
     }
-// GET /api/auth/confirm-email
+
+    // GET /api/auth/confirm-email
     async function confirmEmail(userId: number | string, token: string) {
         return await $fetch<{ message: string }>('/auth/confirm-email', {
             baseURL: config.public.apiBase,
@@ -117,7 +209,7 @@ export const useAuthStore = defineStore('auth', () => {
         })
     }
 
-// POST /api/auth/reset-password
+    // POST /api/auth/reset-password
     async function resetPassword(payload: { email: string; token: string; newPassword: string }) {
         return await $fetch<{ message: string }>('/auth/reset-password', {
             method: 'POST',
@@ -125,15 +217,22 @@ export const useAuthStore = defineStore('auth', () => {
             body: payload
         })
     }
+
     async function initAuth() {
         if (token.value && !user.value) {
             await fetchMe()
         }
     }
 
-    function logout() {
+    async function logout() {
+
+        if (import.meta.client) {
+            await useChatStore().disconnect()
+        }
+
         token.value = null;
         user.value = null;
+
         if (import.meta.client) {
             navigateTo('/auth/login');
         }
@@ -148,7 +247,11 @@ export const useAuthStore = defineStore('auth', () => {
         register,
         forgotPassword,
         fetchMe,
+        refresh,
+        confirmEmail,
+        resetPassword,
         initAuth,
-        logout
+        logout,
+        loginWithGoogle
     }
 })

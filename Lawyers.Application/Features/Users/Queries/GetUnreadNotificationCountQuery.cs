@@ -1,3 +1,5 @@
+using MediatR;
+
 namespace Lawyers.Application.Features.Users.Queries;
 
-public record GetUnreadNotificationQuery();
+public record GetUnreadNotificationCountQuery() : IRequest<int>;

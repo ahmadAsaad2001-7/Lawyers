@@ -14,4 +14,9 @@ public class RegisterCommand : IRequest<AuthResponseDto>
     public string? LawFirmName { get; set; } = string.Empty;
     public string PhoneNumber { get; set; } = string.Empty;
     public Address Address { get; set; } = new Address();
+    
+    public string? BarLicenseNumber { get; set; }  // Bar association license number
+    public string? Specialization { get; set; }     // e.g., "Family Law", "Corporate"
+    public string? Bio { get; set; }                // Professional background
+    public decimal? HourlyRate { get; set; }  
 }

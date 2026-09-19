@@ -1,11 +1,12 @@
 using Lawyers.Application.DTOs;
 using Lawyers.Application.Interfaces;
+using Lawyers.Domain.Entities.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Lawyers.Application.Features.Admin.Queries;
 
-public class GetAllUsersQueryHandler : IRequestHandler<GetAllUsersQuery, PagedResult<AdminUserListDto>>
+public class GetAllUsersQueryHandler : IRequestHandler<GetAllUsersQuery, PagedResult<UserListDto>>
 {
     private readonly IUnitOfWork _unitOfWork;
 
@@ -14,7 +15,7 @@ public class GetAllUsersQueryHandler : IRequestHandler<GetAllUsersQuery, PagedRe
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<PagedResult<AdminUserListDto>> Handle(GetAllUsersQuery request, CancellationToken ct)
+    public async Task<PagedResult<UserListDto>> Handle(GetAllUsersQuery request, CancellationToken ct)
     {
         var query = _unitOfWork.Users.Query()
             .Include(u => u.LawyerProfile)
@@ -29,8 +30,16 @@ public class GetAllUsersQueryHandler : IRequestHandler<GetAllUsersQuery, PagedRe
         // 2. Role filter (matches the Roles enum name)
         if (!string.IsNullOrWhiteSpace(request.RoleFilter))
         {
-            var role = request.RoleFilter.Trim();
-            query = query.Where(u => u.Role.ToString() == role);
+            if (!Enum.TryParse<Roles>(request.RoleFilter.Trim(), ignoreCase: true, out var role))
+            {
+                return new PagedResult<UserListDto>
+                {
+                    PageNumber = request.Page,
+                    PageSize = request.PageSize
+                };
+            }
+
+            query = query.Where(user => user.Role == role);
         }
 
         // 3. Search across email, phone, and profile full names
@@ -52,7 +61,7 @@ public class GetAllUsersQueryHandler : IRequestHandler<GetAllUsersQuery, PagedRe
             .OrderByDescending(u => u.CreatedAt)
             .Skip((request.Page - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(u => new AdminUserListDto
+            .Select(u => new UserListDto
             {
                 Id = u.Id,
                 Email = u.Email!,
@@ -88,7 +97,7 @@ public class GetAllUsersQueryHandler : IRequestHandler<GetAllUsersQuery, PagedRe
             })
             .ToListAsync(ct);
 
-        return new PagedResult<AdminUserListDto>
+        return new PagedResult<UserListDto>
         {
             Items = items,
             TotalCount = totalCount,

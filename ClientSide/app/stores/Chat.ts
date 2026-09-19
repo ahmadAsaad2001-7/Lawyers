@@ -2,6 +2,7 @@
 import { ref } from 'vue';
 import * as signalR from '@microsoft/signalr';
 import type { ChatSummary, FreeInquiry } from '~/types/chat';
+import { useNotificationStore } from '~/stores/notifications';
 
 export interface ChatMessage {
     id: number;
@@ -46,6 +47,13 @@ export const useChatStore = defineStore('chat', () => {
     const unread = ref<Record<number, number>>({});
 
     let connection: signalR.HubConnection | null = null;
+    let isInitialized = false;
+
+    // Live set of consultation ids we've joined the SignalR group for.
+    // Used on reconnect instead of a stale closed-over array, and can
+    // be grown later (e.g. when a new consultation is created) via
+    // joinConsultation().
+    const joinedConsultationIds = ref<Set<number>>(new Set());
 
     // =========================================================
     // CALL STATE
@@ -99,9 +107,15 @@ export const useChatStore = defineStore('chat', () => {
         token: string,
         isLawyer: boolean
     ) => {
-        if (connection) {
+        // Guard the whole init, not just the SignalR connection.
+        // Previously this would still re-fetch and re-seed `unread`
+        // (wiping out counts accumulated since first load) even
+        // though `connect()` itself was a no-op on repeat calls.
+        if (isInitialized || connection) {
             return;
         }
+
+        isInitialized = true;
 
         const base = config.public.apiBase as string;
         const headers = {
@@ -148,6 +162,7 @@ export const useChatStore = defineStore('chat', () => {
             );
 
             connectionStatus.value = 'error';
+            isInitialized = false;
         }
     };
 
@@ -186,17 +201,7 @@ export const useChatStore = defineStore('chat', () => {
             console.log('[SignalR] Connected');
 
             for (const id of consultationIds) {
-                try {
-                    await connection.invoke('JoinConsultation', id);
-                    console.log(
-                        `[SignalR] Joined consultation ${id}`
-                    );
-                } catch (error) {
-                    console.error(
-                        `[SignalR] Failed to join consultation ${id}`,
-                        error
-                    );
-                }
+                await joinConsultation(id);
             }
 
             connectionStatus.value = 'connected';
@@ -231,7 +236,11 @@ export const useChatStore = defineStore('chat', () => {
 
             connectionStatus.value = 'connected';
 
-            for (const id of consultationIds) {
+            // Use the live set of joined ids (grown via joinConsultation)
+            // rather than the array captured when connect() was first
+            // called — otherwise any consultation joined after startup
+            // silently never gets rejoined after a reconnect.
+            for (const id of Array.from(joinedConsultationIds.value)) {
                 await connection
                     ?.invoke('JoinConsultation', id)
                     .catch((error) => {
@@ -251,6 +260,26 @@ export const useChatStore = defineStore('chat', () => {
 
             connectionStatus.value = 'disconnected';
         });
+    };
+
+    // Join (or rejoin) a single consultation group and remember it so
+    // reconnect logic stays accurate even for consultations joined
+    // after the initial connect() call (e.g. a newly created chat).
+    const joinConsultation = async (id: number) => {
+        if (!connection) {
+            return;
+        }
+
+        try {
+            await connection.invoke('JoinConsultation', id);
+            joinedConsultationIds.value.add(id);
+            console.log(`[SignalR] Joined consultation ${id}`);
+        } catch (error) {
+            console.error(
+                `[SignalR] Failed to join consultation ${id}`,
+                error
+            );
+        }
     };
 
     // =========================================================
@@ -278,6 +307,33 @@ export const useChatStore = defineStore('chat', () => {
                     unread.value[msg.consultationId] =
                         (unread.value[msg.consultationId] ?? 0) + 1;
                 }
+            }
+        );
+
+        connection.on(
+            'ReceiveNotification',
+            (payload: {
+                id?: number
+                Id?: number
+                title?: string
+                Title?: string
+                message?: string
+                Message?: string
+                isRead?: boolean
+                IsRead?: boolean
+                createdAt?: string
+                CreatedAt?: string
+            }) => {
+                useNotificationStore().ingest({
+                    id: payload.id ?? payload.Id ?? Date.now(),
+                    title: payload.title ?? payload.Title ?? '',
+                    message: payload.message ?? payload.Message ?? '',
+                    isRead: payload.isRead ?? payload.IsRead ?? false,
+                    createdAt:
+                        payload.createdAt ??
+                        payload.CreatedAt ??
+                        new Date().toISOString(),
+                })
             }
         );
 
@@ -433,7 +489,7 @@ export const useChatStore = defineStore('chat', () => {
                     );
 
                     if (!success) {
-                        cleanupCall();
+                        await failCall(p.consultationId);
                     }
                 } catch (error) {
                     console.error(
@@ -448,8 +504,9 @@ export const useChatStore = defineStore('chat', () => {
                                 : 'unknown error'
                         }`;
 
-                    cleanupCall();
-                    callDiagnostic.value = message;
+                    // Tell the other side we're bailing instead of
+                    // leaving them ringing/connecting until they time out.
+                    await failCall(p.consultationId, message);
                 }
             }
         );
@@ -535,7 +592,7 @@ export const useChatStore = defineStore('chat', () => {
                     );
 
                     if (!success) {
-                        cleanupCall();
+                        await failCall(p.consultationId);
                     }
                 } catch (error) {
                     console.error(
@@ -550,8 +607,7 @@ export const useChatStore = defineStore('chat', () => {
                                 : 'unknown error'
                         }`;
 
-                    cleanupCall();
-                    callDiagnostic.value = message;
+                    await failCall(p.consultationId, message);
                 }
             }
         );
@@ -596,8 +652,7 @@ export const useChatStore = defineStore('chat', () => {
                                 : 'unknown error'
                         }`;
 
-                    cleanupCall();
-                    callDiagnostic.value = message;
+                    await failCall(p.consultationId, message);
                 }
             }
         );
@@ -1087,6 +1142,22 @@ export const useChatStore = defineStore('chat', () => {
         callState.value = 'idle';
     };
 
+    // Local failure during offer/answer negotiation: notify the other
+    // side via EndCall so they don't sit ringing/connecting until their
+    // own timeout fires, then clean up locally.
+    const failCall = async (
+        consultationId: number,
+        message?: string
+    ) => {
+        await safeInvoke('EndCall', consultationId);
+
+        cleanupCall();
+
+        if (message) {
+            callDiagnostic.value = message;
+        }
+    };
+
     // =========================================================
     // START OUTGOING CALL
     // =========================================================
@@ -1156,6 +1227,13 @@ export const useChatStore = defineStore('chat', () => {
                         ringSecondsRemaining.value -
                         1
                     );
+
+                // Self-terminate instead of relying solely on other
+                // code paths to clear the interval.
+                if (ringSecondsRemaining.value === 0 && ringCountdown) {
+                    clearInterval(ringCountdown);
+                    ringCountdown = null;
+                }
             }, 1000);
 
         ringTimeout = setTimeout(() => {
@@ -1246,7 +1324,7 @@ export const useChatStore = defineStore('chat', () => {
                 );
 
             if (!accepted) {
-                cleanupCall();
+                await failCall(consultationId);
             }
         } catch (error) {
             console.error(
@@ -1261,9 +1339,9 @@ export const useChatStore = defineStore('chat', () => {
                         : 'unknown error'
                 }`;
 
-            cleanupCall();
-            callDiagnostic.value =
-                message;
+            // Let the caller know we couldn't accept instead of
+            // leaving them stuck in "connecting" for 20s.
+            await failCall(consultationId, message);
         }
     };
 
@@ -1310,31 +1388,31 @@ export const useChatStore = defineStore('chat', () => {
     // =========================================================
 
     const toggleMute = () => {
+        // Drive tracks from the *new* desired state rather than
+        // inverting each track's own `enabled` flag — keeps every
+        // track (including ones added later via renegotiation) in
+        // sync with `isMuted` instead of potentially drifting apart.
+        const nextMuted = !isMuted.value;
+
         localStream.value
             ?.getAudioTracks()
-            .forEach(
-                (track) => {
-                    track.enabled =
-                        !track.enabled;
-                }
-            );
+            .forEach((track) => {
+                track.enabled = !nextMuted;
+            });
 
-        isMuted.value =
-            !isMuted.value;
+        isMuted.value = nextMuted;
     };
 
     const toggleCamera = () => {
+        const nextCameraOff = !isCameraOff.value;
+
         localStream.value
             ?.getVideoTracks()
-            .forEach(
-                (track) => {
-                    track.enabled =
-                        !track.enabled;
-                }
-            );
+            .forEach((track) => {
+                track.enabled = !nextCameraOff;
+            });
 
-        isCameraOff.value =
-            !isCameraOff.value;
+        isCameraOff.value = nextCameraOff;
     };
 
     // =========================================================
@@ -1356,6 +1434,9 @@ export const useChatStore = defineStore('chat', () => {
 
             connection = null;
         }
+
+        isInitialized = false;
+        joinedConsultationIds.value = new Set();
 
         connectionStatus.value =
             'disconnected';
@@ -1396,6 +1477,7 @@ export const useChatStore = defineStore('chat', () => {
         getConnection,
         connect,
         disconnect,
+        joinConsultation,
 
         // Chat actions
         openChat,

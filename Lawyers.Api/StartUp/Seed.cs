@@ -1,11 +1,9 @@
-﻿using Lawyers.Domain.Entities;
+﻿﻿using Lawyers.Domain.Entities;
 using Lawyers.Domain.Entities.Enums;
 using Lawyers.Domain.ValueObjects;
 using Lawyers.InfraStructure.Data; // Ensure this matches your DbContext namespace
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+
 
 namespace Lawyers.Api.StartUp;
 
@@ -73,7 +71,7 @@ public static class Seed
             }
         }
     }
-
+    
     private static async Task SeedLawyers(UserManager<User> userManager, AppDbContext dbContext)
     {
         var lawyersData = new[]
@@ -126,7 +124,6 @@ public static class Seed
                             PostalCode = "11511" 
                         },
                         
-                        ProfileImageUrl = user.ProfileImageUrl,
                         BarLicenseNumber = l.Bar,
                         IsVerified = true,
                         Specialization = l.Spec,

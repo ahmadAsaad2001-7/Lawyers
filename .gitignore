@@ -1,0 +1,25 @@
+# .NET build output
+[Bb]in/
+[Oo]bj/
+
+# IDE and local tooling
+.idea/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local secrets (never commit)
+**/appsettings.Secrets.json
+ClientSide/.env
+
+# Nuxt / Node
+ClientSide/node_modules/
+ClientSide/.nuxt/
+ClientSide/.output/
+
+# Logs and temporary files
+*.log
+*.tmp
+*.cache

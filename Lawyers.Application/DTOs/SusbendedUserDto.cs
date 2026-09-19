@@ -1,4 +1,4 @@
-namespace Lawyers.Application.Features.Admin.Commands;
+namespace Lawyers.Application.Features.DTOs;
 
 public class SuspendedUserDto
 {

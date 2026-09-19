@@ -29,6 +29,8 @@ public class PaymentFallbackWorker
     {
         var consultation = await _context.Consultations
             .Include(c => c.Payment)
+            .Include(c => c.Client)
+            .Include(c => c.Lawyer)
             .FirstOrDefaultAsync(c => c.Id == consultationId);
 
         if (consultation?.Payment == null || consultation.Status != ConsultationStatus.Pending)
@@ -48,7 +50,7 @@ public class PaymentFallbackWorker
             await _context.SaveChangesAsync();
 
             await _notificationService.SendBookingConfirmedAsync(
-                consultation.ClientId, consultation.LawyerId, consultation.ScheduledAt);
+                consultation.Client.UserId, consultation.Lawyer.UserId, consultation.ScheduledAt);
 
             _logger.LogInformation("Consultation {Id} confirmed via fallback worker.", consultationId);
         }

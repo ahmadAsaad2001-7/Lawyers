@@ -35,14 +35,17 @@ public static class Dependencies
         // ✅ ADDED THIS: Register the Email Service so AuthService can use it!
         builder.Services.AddScoped<IEmailService, SmtpEmailService>();
 
-        // 3. MediatR & Validation
-        builder.Services.AddMediatR(cfg => 
-            cfg.RegisterServicesFromAssembly(typeof(IUnitOfWork).Assembly));
+        // 3. MediatR & Validation (Application handlers + Infrastructure event subscribers)
+        builder.Services.AddMediatR(cfg =>
+        {
+            cfg.RegisterServicesFromAssembly(typeof(IUnitOfWork).Assembly);
+            cfg.RegisterServicesFromAssembly(typeof(Lawyers.Infrastructure.Notifications.SignalR.ConsultationConfirmedSignalRHandler).Assembly);
+        });
         builder.Services.AddValidatorsFromAssembly(typeof(IUnitOfWork).Assembly);
 
         // 4. Notifications
         builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
-
+        
         // 5. Payment Gateway
         builder.Services.Configure<KashierOptions>(configuration.GetSection("KashierSettings"));
 

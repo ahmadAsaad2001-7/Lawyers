@@ -13,8 +13,30 @@ const lawyerId = route.params.id as string;
 // Admin check
 const isAdmin = computed(() => authStore.user?.role === 'Admin');
 
-// 1. Fetch Lawyer Profile using your existing composable
-const { lawyer, isLoading: isLawyerLoading, error: lawyerError } = useLawyer(lawyerId);
+// 1. Fetch Lawyer Profile - CLIENT SIDE ONLY
+const lawyer = ref<any>(null);
+const isLawyerLoading = ref(true);
+const lawyerError = ref<string | null>(null);
+
+const fetchLawyer = async () => {
+  isLawyerLoading.value = true;
+  lawyerError.value = null;
+
+  try {
+    const response = await $fetch(`${config.public.apiBase}/Lawyers/${lawyerId}`, {
+      headers: {
+        Authorization: authStore.token ? `Bearer ${authStore.token}` : ''
+      }
+    });
+    lawyer.value = response;
+  } catch (err: any) {
+    console.error('Failed to fetch lawyer:', err);
+    lawyerError.value = 'تعذر تحميل بيانات المحامي';
+  } finally {
+    isLawyerLoading.value = false;
+  }
+};
+
 
 // 2. Fetch Lawyer Posts State
 const posts = ref<LawyerPostSummaryDto[]>([]);
@@ -42,6 +64,7 @@ const fetchPosts = async () => {
 };
 
 onMounted(() => {
+  fetchLawyer();
   fetchPosts();
 });
 
@@ -80,6 +103,7 @@ const handleBooked = (response: any) => {
 </script>
 
 <template>
+  <div>
   <div dir="rtl" class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
     <!-- Left Panel: Sidebar (1 Column) -->
@@ -287,14 +311,15 @@ const handleBooked = (response: any) => {
       </div>
 
     </main>
-    <BookingModel
-        v-if="isBookingOpen && bookingLawyer"
-        :lawyer="bookingLawyer"
-        :is-open="isBookingOpen"
-        @close="isBookingOpen = false"
-        @booked="handleBooked"
-    />
+  </div>
 
+  <BookingModel
+      v-if="bookingLawyer"
+      :lawyer="bookingLawyer"
+      :is-open="isBookingOpen"
+      @close="isBookingOpen = false"
+      @booked="handleBooked"
+  />
   </div>
 </template>
 

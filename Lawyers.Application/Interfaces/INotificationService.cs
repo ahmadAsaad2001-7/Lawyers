@@ -6,4 +6,6 @@ public interface INotificationService
     Task SendNewBookingAsync(int clientId, int lawyerId, DateTime scheduledAt);
     
     // Add other notification types as needed
+    Task SendGenericNotificationAsync(int recipientUserId, string title, string message);
+    Task NotifyAsync(int recipientUserId, string title, string message, CancellationToken ct = default);
 }

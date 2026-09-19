@@ -5,7 +5,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Lawyers.Domain.Entities;
+using Lawyers.Domain.Entities.Enums;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 
 namespace Lawyers.API.Controllers;
 
@@ -14,10 +18,14 @@ namespace Lawyers.API.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly UserManager<User> _userManager;  
+    private readonly IConfiguration _configuration;
 
-    public AuthController(IMediator mediator)
+    public AuthController(IMediator mediator, UserManager<User> userManager,IConfiguration configuration)
     {
         _mediator = mediator;
+        _userManager = userManager;
+        _configuration = configuration;
     }
 
     [HttpPost("register")]
@@ -63,7 +71,46 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+    [HttpGet("google")]
+    [AllowAnonymous]
+    public IActionResult GoogleLogin([FromQuery] string? role = null)
+    {
+        var redirectUrl = Url.Action(nameof(GoogleCallback), "Auth", new { role }); // ✅ forward role through the round trip
+        var properties = new AuthenticationProperties { RedirectUri = redirectUrl };
+        return Challenge(properties, "Google");
+    }
 
+    [HttpGet("google-callback")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GoogleCallback([FromQuery] string? role = null) 
+    {
+        var frontendUrl = _configuration["FrontendUrl"] ?? "https://localhost:3000";
+
+        var result = await HttpContext.AuthenticateAsync(IdentityConstants.ExternalScheme);
+        if (!result.Succeeded || result.Principal == null)
+            return Redirect($"{frontendUrl}/auth/login?error=google_failed");
+
+        var email = result.Principal.FindFirstValue(ClaimTypes.Email);
+        var name = result.Principal.FindFirstValue(ClaimTypes.Name);
+        var picture = result.Principal.FindFirstValue("picture");
+
+        await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+
+        if (string.IsNullOrEmpty(email))
+            return Redirect($"{frontendUrl}/auth/login?error=no_email");
+
+        Roles? parsedRole = Enum.TryParse<Roles>(role, ignoreCase: true, out var r) ? r : null;
+
+        try
+        {
+            var response = await _mediator.Send(new ExternalLoginCommand(email, name ?? email, picture, parsedRole));
+            return Redirect($"{frontendUrl}/auth/google-callback?token={Uri.EscapeDataString(response.Token!)}");
+        }
+        catch
+        {
+            return Redirect($"{frontendUrl}/auth/login?error=google_login_failed");
+        }
+    }
     [HttpPost("forgot-password")]
     [AllowAnonymous]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
@@ -93,16 +140,52 @@ public class AuthController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
     }
+    /// <summary>
+    /// Re-issues a JWT for the currently authenticated user, reflecting their
+    /// current role/verification state. Call this after a "you've been verified"
+    /// notification instead of forcing a full re-login.
+    /// </summary>
+    [Authorize] // any authenticated user, regardless of role/verification status
+    [HttpPost("refresh")]
+    public async Task<IActionResult> Refresh()
+    {
+        try
+        {
+            var response = await _mediator.Send(new RefreshTokenCommand());
+            return Ok(response);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
+    }
 
     [Authorize]
     [HttpGet("me")]
-    public IActionResult GetMe()
+    public async Task<IActionResult> GetMe()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        var email = User.FindFirst(ClaimTypes.Email)?.Value;
-        var userName = User.FindFirst(ClaimTypes.Name)?.Value ?? email;
-        var role = User.FindFirst(ClaimTypes.Role)?.Value;
-        
-        return Ok(new { userId, userName, email, role });
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null) return Unauthorized();
+
+        var appUser = await _userManager.Users
+            .Include(u => u.ClientProfile)
+            .Include(u => u.LawyerProfile)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id.ToString() == userIdClaim);
+
+        if (appUser == null) return Unauthorized();
+
+        return Ok(new
+        {
+            userId = appUser.Id,
+            userName = appUser.UserName,
+            email = appUser.Email,
+            role = appUser.Role.ToString(),
+            // ✅ NEW: prefer lawyer name, then client name, then username
+            fullName = appUser.LawyerProfile?.FullName
+                       ?? appUser.ClientProfile?.FullName
+                       ?? appUser.UserName,
+            profileImageUrl = appUser.ProfileImageUrl
+        });
     }
 }

@@ -1,4 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+const environment = (globalThis as {
+    process?: { env?: Record<string, string | undefined> }
+}).process?.env ?? {}
+
 export default defineNuxtConfig({
     compatibilityDate: '2024-04-03',
     devtools: { enabled: true },
@@ -9,18 +13,23 @@ export default defineNuxtConfig({
     dir: {
         public: '../public',
     },
-    modules: ['@pinia/nuxt',
-    '@nuxtjs/tailwindcss',
-    ],
+    css: ['~/assets/css/main.css'],
+    modules: ['@pinia/nuxt', '@nuxt/ui-pro', '@nuxt/fonts'],
+
+    // ✅ Configure the Cairo font to be loaded automatically from Google
+    fonts: {
+        families: [
+            { name: 'Cairo', provider: 'google' }
+        ]
+    },
+
     runtimeConfig: {
         public: {
-            apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://localhost:7129/api',
-            // TURN is required for calls between users behind restrictive NATs,
-            // mobile networks, or corporate firewalls. Leave these empty for
-            // local STUN-only development.
-            turnUrl: process.env.NUXT_PUBLIC_TURN_URL || '',
-            turnUsername: process.env.NUXT_PUBLIC_TURN_USERNAME || '',
-            turnCredential: process.env.NUXT_PUBLIC_TURN_CREDENTIAL || ''
+            apiBase: environment.NUXT_PUBLIC_API_BASE || 'https://albayinahapi.runasp.net/api',
+
+            turnUrl: environment.NUXT_PUBLIC_TURN_URL || '',
+            turnUsername: environment.NUXT_PUBLIC_TURN_USERNAME || '',
+            turnCredential: environment.NUXT_PUBLIC_TURN_CREDENTIAL || ''
         }
     }
 })

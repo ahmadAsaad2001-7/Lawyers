@@ -1,4 +1,5 @@
 using Lawyers.Application.Interfaces;
+using Lawyers.Domain.Entities.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
@@ -15,12 +16,13 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<AppDbConte
         var configuration = new ConfigurationBuilder()
             .SetBasePath(apiProjectPath)
             .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+            .AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: false)
             .Build();
 
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-        optionsBuilder.UseNpgsql(connectionString);
+        optionsBuilder.UseSqlServer(connectionString);
         return new AppDbContext(optionsBuilder.Options, new DummyCurrentUserService());
     }
 
@@ -59,4 +61,5 @@ internal class DummyCurrentUserService : ICurrentUserService
     public bool IsAuthenticated => false;
     public string? Email => null;
     public bool IsAdmin => false;
+    public Roles? Role => Roles.Client;
 }

@@ -1,6 +1,6 @@
-namespace Lawyers.Domain.Entities.Enums;
+namespace Lawyers.Domain.Entities;
 
-public class PlatformNotification
+public class PlatformNotification :AuditableEntity
 {
     public int RecipientUserId { get; set; }
     public User Recipient { get; set; } = null!;

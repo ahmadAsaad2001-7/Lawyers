@@ -1,6 +1,5 @@
+using MediatR;
+
 namespace Lawyers.Application.Features.Lawyers.Commands;
 
-public class ApplyForVerificationCommand
-{
-    
-}
+    public record ApplyForVerificationCommand(string? Reason) : IRequest<int>;    

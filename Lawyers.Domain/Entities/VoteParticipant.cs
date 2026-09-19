@@ -1,6 +1,6 @@
 namespace Lawyers.Domain.Entities;
 
-public class VoteParticipant : BaseEntity
+public class VoteParticipant : AuditableEntity
 {
     public int AdminVoteId { get; set; }
     public int AdminUserId { get; set; }

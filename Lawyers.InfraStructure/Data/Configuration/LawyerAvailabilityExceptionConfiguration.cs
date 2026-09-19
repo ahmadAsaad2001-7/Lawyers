@@ -24,10 +24,12 @@ public class LawyerAvailabilityExceptionConfiguration : IEntityTypeConfiguration
             .HasConversion<int>(); // Store ExceptionType enum as integer
 
         builder.Property(e => e.StartTime)
-            .IsRequired(false); // Null if Type is "Closed"
+            .IsRequired(false)
+            .HasColumnType("time");
 
         builder.Property(e => e.EndTime)
-            .IsRequired(false); // Null if Type is "Closed"
+            .IsRequired(false)
+            .HasColumnType("time");
 
         builder.Property(e => e.Reason)
             .IsRequired(false)

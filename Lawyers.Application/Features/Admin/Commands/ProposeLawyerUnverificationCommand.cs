@@ -1,6 +1,5 @@
+using MediatR;
+
 namespace Lawyers.Application.Features.Admin.Commands;
 
-public class ProposeLawyerUnverificationCommand
-{
-    
-}
+public record ProposeLawyerUnverificationCommand(int LawyerUserId, string Reason) : IRequest<int>;

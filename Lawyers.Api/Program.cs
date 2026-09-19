@@ -6,6 +6,7 @@ using Lawyers.InfraStructure.Data; // Matched your actual folder casing (InfraSt
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: true);
 
 // 1. Load all dependencies
 builder.AddDependencies();
@@ -13,10 +14,9 @@ builder.HangFireConfig();
 builder.AuthConfigure();
 builder.CorsConfigure();
 
-// 2. Database Setup (PostgreSQL)
+// 2. Database Setup (SQL Server)
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
-
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 var app = builder.Build();
 
 // 3. Seed Roles (Awaited to avoid startup race conditions)

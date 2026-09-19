@@ -26,35 +26,59 @@ const applyFilters = () => {
     </h2>
 
     <div class="space-y-1">
-      <label class="text-xs text-gray-600 font-medium">بحث عام</label>
+      <label class="text-xs text-gray-800 font-medium">بحث عام</label>
       <input
           v-model="store.filters.search"
           type="text"
           placeholder="اسم المحامي أو الكلمة المفتاحية..."
-          class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
       />
     </div>
 
     <div class="space-y-1">
-      <label class="text-xs text-gray-600 font-medium">المنطقة / المحافظة</label>
+      <label class="text-xs text-gray-800 font-medium">المحافظة</label>
       <select
           v-model="store.filters.state"
-          class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
       >
-        <option value="">جميع المناطق</option>
-        <option value="الرياض">منطقة الرياض</option>
-        <option value="مكة">مكة المكرمة</option>
+        <option value="">جميع المحافظات</option>
+        <option value="القاهرة">القاهرة</option>
+        <option value="الإسكندرية">الإسكندرية</option>
+        <option value="بورسعيد">بورسعيد</option>
+        <option value="السويس">السويس</option>
+        <option value="دمياط">دمياط</option>
+        <option value="الدقهلية">الدقهلية</option>
+        <option value="الشرقية">الشرقية</option>
+        <option value="القليوبية">القليوبية</option>
+        <option value="كفر الشيخ">كفر الشيخ</option>
+        <option value="الغربية">الغربية</option>
+        <option value="المنوفية">المنوفية</option>
+        <option value="البحيرة">البحيرة</option>
+        <option value="الإسماعيلية">الإسماعيلية</option>
+        <option value="الجيزة">الجيزة</option>
+        <option value="بني سويف">بني سويف</option>
+        <option value="الفيوم">الفيوم</option>
+        <option value="المنيا">المنيا</option>
+        <option value="أسيوط">أسيوط</option>
+        <option value="سوهاج">سوهاج</option>
+        <option value="قنا">قنا</option>
+        <option value="الأقصر">الأقصر</option>
+        <option value="أسوان">أسوان</option>
+        <option value="البحر الأحمر">البحر الأحمر</option>
+        <option value="الوادي الجديد">الوادي الجديد</option>
+        <option value="مطروح">مطروح</option>
+        <option value="شمال سيناء">شمال سيناء</option>
+        <option value="جنوب سيناء">جنوب سيناء</option>
       </select>
     </div>
 
     <div class="space-y-1">
-      <label class="text-xs text-gray-600 font-medium">التخصص القانوني</label>
+      <label class="text-xs text-gray-800 font-medium">التخصص القانوني</label>
       <select
           v-model="store.filters.specialization"
-          class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
       >
         <option value="">جميع التخصصات</option>
-        <!-- ✅ Values adjusted to match what your API seems to expect -->
         <option value="Real Estate">عقارات (Real Estate)</option>
         <option value="Commercial">قانون تجاري (Commercial)</option>
         <option value="Labor">قضايا عمالية (Labor)</option>
@@ -62,12 +86,12 @@ const applyFilters = () => {
     </div>
 
     <div class="space-y-1">
-      <label class="text-xs text-gray-600 font-medium">المدينة</label>
+      <label class="text-xs text-gray-800 font-medium">المدينة</label>
       <input
           v-model="store.filters.city"
           type="text"
           placeholder="حدد المدينة..."
-          class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+          class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
       />
     </div>
 

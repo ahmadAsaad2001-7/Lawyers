@@ -1,6 +1,4 @@
-﻿// types/lawyer.ts
-
-export interface Lawyer {
+﻿export interface Lawyer {
     id: number;
     fullName: string;
     avatar: string | null;
@@ -8,7 +6,7 @@ export interface Lawyer {
     hourlyRate: number;
     specialization: string;
     city: string;
-    state?: string; // Added in case your backend includes it
+    state?: string;
     averageRating: number;
     lawFirmName?: string;
     isVerified?: boolean;
@@ -16,7 +14,6 @@ export interface Lawyer {
     address?: string;
     phone?: string;
     languages?: string[];
-    
 }
 
 export interface LawyerFilters {
@@ -52,4 +49,39 @@ export interface LawyerPostSummaryDto {
     likeCount: number;
     isFeatured: boolean;
     createdAt: string;
+}
+
+
+export enum Roles {
+    Client = 0,
+    Lawyer = 1,
+    PendingLawyer = 2,
+    Admin = 3
+}
+
+export interface AddressDto {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    postalCode: string;
+}
+
+export interface CompleteLawyerProfilePayload {
+    barLicenseNumber: string;
+    specialization?: string;
+    bio?: string;
+    hourlyRate?: number;
+    street?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postalCode?: string;
+}
+
+export interface LawyerVerificationStatus {
+    role: string; // "PendingLawyer" | "Lawyer"
+    isVerified: boolean;
+    barLicenseNumber: string;
+    hasActiveApplication: boolean;
 }

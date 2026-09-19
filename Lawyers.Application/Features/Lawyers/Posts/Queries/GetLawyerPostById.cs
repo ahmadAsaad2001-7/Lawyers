@@ -20,7 +20,7 @@ public class GetLawyerPostByIdQueryHandler(IUnitOfWork unitOfWork)
                 p.Id,
                 p.LawyerId,
                 p.Lawyer != null ? p.Lawyer.FullName : string.Empty,
-                p.Lawyer != null ? p.Lawyer.ProfileImageUrl : null,
+                p.Lawyer != null ? p.Lawyer.User.ProfileImageUrl : null,
                 p.Title,
                 p.Content,
                 p.Excerpt,

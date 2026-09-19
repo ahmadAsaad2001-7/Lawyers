@@ -1,6 +1,6 @@
 namespace Lawyers.Application.DTOs;
 
-public class AdminUserListDto
+public class UserListDto
 {
     public int Id { get; set; }
     public string Email { get; set; } = string.Empty;
