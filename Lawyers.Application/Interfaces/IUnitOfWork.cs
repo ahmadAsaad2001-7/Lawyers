@@ -15,6 +15,12 @@ public interface IUnitOfWork : IDisposable
     IRepository<LawyerPost> LawyerPosts { get; }
     IRepository<VoteParticipant> VoteParticipants { get; }
     IRepository<AdminVote>  AdminVotes { get; }
+    IRepository<PlatformNotification>  PlatformNotifications { get; }
+    IRepository<UserSuspension>  UserSuspensions { get; }
+    IRepository<LawyerAvailability> LawyerAvailabilities { get; }
+    IRepository<LawyerWeeklySchedule>  LawyerWeeklySchedules { get; }
+    IRepository<LawyerAvailabilityException> LawyerAvailabilityExceptions { get; }
+    
     Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted);
     Task CommitTransactionAsync();
     Task RollbackTransactionAsync();

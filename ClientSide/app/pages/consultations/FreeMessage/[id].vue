@@ -107,7 +107,7 @@
         </p>
 
         <NuxtLink
-            to="/lawyers"
+            to="/"
             class="inline-block px-6 py-2.5 bg-emerald-800 text-white text-sm font-medium rounded-xl hover:bg-emerald-900 transition-colors"
         >
           العودة لقائمة المحامين

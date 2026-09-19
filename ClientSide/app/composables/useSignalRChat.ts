@@ -25,7 +25,7 @@ export const useSignalRChat = (consultationId: number, currentUserId: number) =>
         try {
             const token = useCookie("auth_token").value;
             const config = useRuntimeConfig();
-            const apiBase = String(config.public.apiBase || "http://localhost:5112/api/");
+            const apiBase = String(config.public.apiBase || "https://albayinahapi.runasp.net/api");
             const hubUrl = new URL("../hubs/consultations", apiBase).toString();
 
             connection = new signalR.HubConnectionBuilder()

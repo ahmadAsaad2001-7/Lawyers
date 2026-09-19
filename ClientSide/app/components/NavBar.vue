@@ -12,8 +12,9 @@ const isProfileMenuOpen = ref(false);
 const isLoggedIn = computed(() => authStore.isAuthenticated);
 const isLawyer = computed(() => authStore.user?.role === 'Lawyer');
 
-// Total unread across all chats (once you wire the chat store to track unread counts)
-const unreadCount = computed(() => 0); // placeholder — replace with real count from chatStore
+const chatUnread = computed(() =>
+    Object.values(chatStore.unread).reduce((sum, n) => sum + n, 0)
+);
 
 const toggleMobileMenu = () => {
   isMobileMenuOpen.value = !isMobileMenuOpen.value;
@@ -74,10 +75,7 @@ watch(() => route.path, closeMenus);
         <!-- Desktop links -->
         <div class="hidden items-center gap-8 md:flex">
           <NuxtLink to="/" class="text-emerald-100 transition-colors hover:text-amber-300">الصفحة الرئيسية</NuxtLink>
-          <NuxtLink to="/search" class="text-emerald-100 transition-colors hover:text-amber-300">بحث</NuxtLink>
-          <NuxtLink v-if="isLawyer" to="/consultations/free-messages" class="text-emerald-100 transition-colors hover:text-amber-300">
-            الاستشارات المجانية
-          </NuxtLink>
+         
         </div>
 
         <!-- Desktop auth / profile -->
@@ -88,6 +86,8 @@ watch(() => route.path, closeMenus);
           </template>
 
           <template v-else>
+            <NotificationBell />
+
             <!-- Chat icon with unread badge -->
             <NuxtLink
                 to="/chat"
@@ -98,10 +98,10 @@ watch(() => route.path, closeMenus);
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
               <span
-                  v-if="unreadCount > 0"
+                  v-if="chatUnread > 0"
                   class="absolute -start-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white"
               >
-                {{ unreadCount }}
+                {{ chatUnread }}
               </span>
             </NuxtLink>
 
@@ -130,15 +130,23 @@ watch(() => route.path, closeMenus);
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                 الملف الشخصي
               </NuxtLink>
+              <NuxtLink
+                  v-if="authStore.user?.role.toLowerCase() == 'admin'"
+                  to="/admin"
+                  class="text-gray-700 hover:text-emerald-600 font-medium transition-colors"
+              >
+الادمن بانل
+              </NuxtLink>
+              
               <NuxtLink to="/chat" class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-emerald-50" @click="closeMenus">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
                 المحادثات
-                <span v-if="unreadCount" class="me-auto rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ unreadCount }}</span>
+                <span v-if="chatUnread" class="me-auto rounded-full bg-amber-500 px-1.5 text-[10px] font-bold text-white">{{ chatUnread }}</span>
               </NuxtLink>
-              <NuxtLink v-if="isLawyer" to="/consultations/free-messages" class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-emerald-50" @click="closeMenus">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                الاستشارات المجانية
-              </NuxtLink>
+<!--              <NuxtLink v-if="isLawyer" to="/consultations/free-messages" class="flex items-center gap-2 px-4 py-2.5 text-gray-700 hover:bg-emerald-50" @click="closeMenus">-->
+<!--                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>-->
+<!--                الاستشارات المجانية-->
+<!--              </NuxtLink>-->
               <div class="h-px bg-gray-100"></div>
               <button
                   class="flex w-full items-center gap-2 px-4 py-2.5 text-start text-red-600 hover:bg-red-50"
@@ -153,6 +161,7 @@ watch(() => route.path, closeMenus);
 
         <!-- Mobile: hamburger + chat icon -->
         <div class="flex items-center gap-2 md:hidden">
+          <NotificationBell v-if="isLoggedIn" compact />
           <NuxtLink
               v-if="isLoggedIn"
               to="/chat"
@@ -163,10 +172,10 @@ watch(() => route.path, closeMenus);
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             <span
-                v-if="unreadCount > 0"
+                v-if="chatUnread > 0"
                 class="absolute -start-1 -top-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white"
             >
-              {{ unreadCount }}
+              {{ chatUnread }}
             </span>
           </NuxtLink>
 

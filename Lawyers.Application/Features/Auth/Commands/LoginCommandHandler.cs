@@ -26,7 +26,12 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResponseDto
             UserName = authResponse.UserName,
             Token = authResponse.Token,
             Email = authResponse.Email,
-            Role = authResponse.Role.ToString() 
+            Role = authResponse.Role.ToString(),
+            FullName = authResponse.FullName,                 
+            ProfileImageUrl = authResponse.ProfileImageUrl,   
+            IsPlatformVerified = authResponse.IsPlatformVerified, 
+            Message = authResponse.IsPlatformVerified ? "Login successful." : "Login successful. Note: Your account is pending platform verification."
+
         };
     }
 }

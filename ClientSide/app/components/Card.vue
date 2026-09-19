@@ -1,8 +1,7 @@
 ﻿<!-- components/Card.vue -->
 <script setup lang="ts">
 import { ref } from 'vue';
-import type { Lawyer } from '~/types/Lawyer'; 
-
+import type { Lawyer } from '~/types/Lawyer';
 
 const props = defineProps<{
   lawyer: Lawyer;
@@ -12,6 +11,16 @@ const currentTab = ref<'front' | 'back'>('front');
 const isBookingModelOpen = ref(false);
 
 const starPath = 'M 44.78 10.34 Q 50.00 4.00 55.22 10.34 Q 61.91 5.57 65.31 13.04 Q 73.00 10.16 74.35 18.27 Q 82.53 17.47 81.73 25.65 Q 89.84 27.00 86.96 34.69 Q 94.43 38.09 89.66 44.78 Q 96.00 50.00 89.66 55.22 Q 94.43 61.91 86.96 65.31 Q 89.84 73.00 81.73 74.35 Q 82.53 82.53 74.35 81.73 Q 73.00 89.84 65.31 86.96 Q 61.91 94.43 55.22 89.66 Q 50.00 96.00 44.78 89.66 Q 38.09 94.43 34.69 86.96 Q 27.00 89.84 25.65 81.73 Q 17.47 82.53 18.27 74.35 Q 10.16 73.00 13.04 65.31 Q 5.57 61.91 10.34 55.22 Q 4.00 50.00 10.34 44.78 Q 5.57 38.09 13.04 34.69 Q 10.16 27.00 18.27 25.65 Q 17.47 17.47 25.65 18.27 Q 27.00 10.16 34.69 13.04 Q 38.09 5.57 44.78 10.34 Z';
+
+// Helper function to get initials (e.g., "Mona Ali" -> "MA")
+const getInitials = (name: string) => {
+  if (!name) return 'L';
+  const parts = name.trim().split(' ');
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+};
 
 const handleBooked = (response: {
   consultationId: number;
@@ -37,12 +46,13 @@ const handleBooked = (response: {
       <div class="w-full flex items-center justify-between text-xs font-medium">
         <span class="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200">نشط الآن</span>
         <span class="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full flex items-center gap-1">
-          <!-- ✅ Swapped 'rating' for 'averageRating' -->
           {{ (lawyer.averageRating || 5.0).toFixed(1) }} ★
         </span>
       </div>
 
+      <!-- Avatar Section with Fallback -->
       <div class="relative flex items-center justify-center w-36 h-36 my-2">
+        <!-- Gold Star Background -->
         <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full">
           <path :d="starPath" fill="url(#goldGradient)" stroke="#d4a017" stroke-width="0.25" />
           <path :d="starPath" fill="white" transform="scale(0.92) translate(4,4)" />
@@ -52,34 +62,53 @@ const handleBooked = (response: {
               <stop offset="50%" stop-color="#fbbf24" />
               <stop offset="100%" stop-color="#d97706" />
             </linearGradient>
-          </defs>
-        </svg>
-
-        <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full p-1.5">
-          <defs>
             <clipPath id="starClip">
               <path :d="starPath" transform="scale(0.88) translate(6.8, 6.8)" />
             </clipPath>
           </defs>
+        </svg>
+
+        <!-- Clipped Content Area -->
+        <svg viewBox="0 0 100 100" class="absolute inset-0 w-full h-full p-1.5">
+          <!-- Fallback Background Color -->
+          <rect width="100" height="100" fill="#ecfdf5" clip-path="url(#starClip)" />
+
+          <!-- Initials Text (Shown if no avatar) -->
+          <text
+              v-if="!lawyer.avatar"
+              x="50"
+              y="58"
+              text-anchor="middle"
+              font-size="26"
+              font-weight="bold"
+              fill="#065f46"
+              style="font-family: 'Amiri', serif;"
+              clip-path="url(#starClip)"
+          >
+            {{ getInitials(lawyer.fullName) }}
+          </text>
+
+          <!-- Avatar Image (Shown if avatar exists) -->
           <image
-              :href="lawyer.avatar || 'https://png.pngtree.com/background/20230809/original/pngtree-serious-man-portrait-handsome-caucasian-person-photo-picture-image_4530325.jpg'"
-              :xlink:href="lawyer.avatar || 'https://png.pngtree.com/background/20230809/original/pngtree-serious-man-portrait-handsome-caucasian-person-photo-picture-image_4530325.jpg'"
-              x="0" y="0" width="100" height="100"
+              v-if="lawyer.avatar"
+              :xlink:href="lawyer.avatar"
+              width="100"
+              height="100"
+              class="object-cover"
               clip-path="url(#starClip)"
               preserveAspectRatio="xMidYMid slice"
+              @error="lawyer.avatar = ''"
           />
         </svg>
       </div>
 
       <div>
-        <!-- ✅ Swapped 'name' for 'fullName' -->
         <h3 class="font-bold text-lg text-emerald-950" style="font-family: 'Amiri', serif;">{{ lawyer.fullName }}</h3>
-        <!-- ✅ Fallback to state if city is empty -->
         <p class="text-xs text-gray-500 mt-0.5">{{ lawyer.city || lawyer.state }}</p>
       </div>
 
       <div class="grid grid-cols-3 gap-2 w-full pt-2 text-xs">
-        <nuxt-link :to="`/Lawyers/${lawyer.id}`" class="bg-emerald-800 text-white py-2 rounded-lg hover:bg-emerald-900 transition-colors text-center">
+        <nuxt-link :to="`/lawyers/${lawyer.id}`" class="bg-emerald-800 text-white py-2 rounded-lg hover:bg-emerald-900 transition-colors text-center">
           الملف الشخصي
         </nuxt-link>
         <button
@@ -138,9 +167,12 @@ const handleBooked = (response: {
 
     <!-- Booking Modal -->
     <BookingModel
-        :lawyer="{ id: lawyer.id, name: lawyer.fullName,   
-          avatar: lawyer.avatar || 'https://png.pngtree.com/background/20230809/original/pngtree-serious-man-portrait-handsome-caucasian-person-photo-picture-image_4530325.jpg' 
-, hourlyRate: lawyer.hourlyRate }"
+        :lawyer="{ 
+          id: lawyer.id, 
+          name: lawyer.fullName,   
+          avatar: lawyer.avatar || '', 
+          hourlyRate: lawyer.hourlyRate 
+        }"
         :is-open="isBookingModelOpen"
         @close="isBookingModelOpen = false"
         @booked="handleBooked"

@@ -1,6 +1,6 @@
 ﻿using Hangfire;
 using Hangfire.Dashboard;
-using Hangfire.PostgreSql;
+using Hangfire.SqlServer;
 
 namespace Lawyers.Api.StartUp;
 
@@ -12,7 +12,7 @@ public static class HangFireConfiguration
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-            .UsePostgreSqlStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+            .UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
         builder.Services.AddHangfireServer();
     }
 
@@ -30,8 +30,7 @@ public static class HangFireConfiguration
         {
             var httpContext = context.GetHttpContext();
             return httpContext.User.Identity?.IsAuthenticated == true
-                   && httpContext.User.IsInRole("Admin"); // adjust to your role scheme
+                   && httpContext.User.IsInRole("Admin");
         }
     }
-    }
-    
+}

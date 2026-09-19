@@ -7,63 +7,63 @@
 
       <!-- Full Name -->
       <div class="flex flex-col space-y-1.5">
-        <label for="fullName" class="text-sm font-medium text-gray-700">الاسم الكامل</label>
+        <label for="fullName" class="text-sm font-medium text-gray-800">الاسم الكامل</label>
         <input
             type="text"
             id="fullName"
             v-model="form.fullName"
             :disabled="authStore.isLoading"
             placeholder="أحمد أسعد"
-            class="rounded-lg border border-gray-300 p-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
+            class="rounded-lg border border-gray-300 p-3 text-base text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
         />
         <span class="text-xs text-red-500" v-if="errors.fullName">{{ errors.fullName }}</span>
       </div>
 
       <!-- Email -->
       <div class="flex flex-col space-y-1.5">
-        <label for="email" class="text-sm font-medium text-gray-700">البريد الإلكتروني</label>
+        <label for="email" class="text-sm font-medium text-gray-800">البريد الإلكتروني</label>
         <input
             type="email"
             id="email"
             v-model="form.email"
             :disabled="authStore.isLoading"
             placeholder="name@example.com"
-            class="rounded-lg border border-gray-300 p-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
+            class="rounded-lg border border-gray-300 p-3 text-base text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
         />
         <span class="text-xs text-red-500" v-if="errors.email">{{ errors.email }}</span>
       </div>
 
       <!-- Phone Number -->
       <div class="flex flex-col space-y-1.5">
-        <label for="phoneNumber" class="text-sm font-medium text-gray-700">رقم الهاتف</label>
+        <label for="phoneNumber" class="text-sm font-medium text-gray-800">رقم الهاتف</label>
         <input
             type="tel"
             id="phoneNumber"
             v-model="form.phoneNumber"
             :disabled="authStore.isLoading"
             placeholder="01012345678"
-            class="rounded-lg border border-gray-300 p-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
+            class="rounded-lg border border-gray-300 p-3 text-base text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
         />
         <span class="text-xs text-red-500" v-if="errors.phoneNumber">{{ errors.phoneNumber }}</span>
       </div>
 
       <!-- Password -->
       <div class="flex flex-col space-y-1.5">
-        <label for="password" class="text-sm font-medium text-gray-700">كلمة المرور</label>
+        <label for="password" class="text-sm font-medium text-gray-800">كلمة المرور</label>
         <input
             type="password"
             id="password"
             v-model="form.password"
             :disabled="authStore.isLoading"
             placeholder="••••••••"
-            class="rounded-lg border border-gray-300 p-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
+            class="rounded-lg border border-gray-300 p-3 text-base text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
         />
         <span class="text-xs text-red-500" v-if="errors.password">{{ errors.password }}</span>
       </div>
 
       <!-- Role Selection -->
       <div class="flex flex-col space-y-1.5">
-        <label class="text-sm font-medium text-gray-700">نوع الحساب</label>
+        <label class="text-sm font-medium text-gray-800">نوع الحساب</label>
         <div class="grid grid-cols-2 gap-3">
           <button
               type="button"
@@ -83,6 +83,7 @@
           </button>
         </div>
       </div>
+
       <!-- Address Section -->
       <div class="border-t border-gray-200 pt-4 mt-4 space-y-3">
         <h3 class="text-sm font-bold text-emerald-900" style="font-family: 'Amiri', serif;">العنوان</h3>
@@ -90,80 +91,81 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <!-- Street -->
           <div class="flex flex-col space-y-1 sm:col-span-2">
-            <label for="street" class="text-xs font-medium text-gray-600">الشارع / العنوان التفصيلي</label>
+            <label for="street" class="text-xs font-medium text-gray-700">الشارع / العنوان التفصيلي</label>
             <input
                 type="text"
                 id="street"
                 v-model="form.address.street"
                 :disabled="authStore.isLoading"
                 placeholder="123 شارع التحرير"
-                class="rounded-lg border border-gray-300 p-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
+                class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
             />
           </div>
 
           <!-- City -->
           <div class="flex flex-col space-y-1">
-            <label for="city" class="text-xs font-medium text-gray-600">المدينة</label>
+            <label for="city" class="text-xs font-medium text-gray-700">المدينة</label>
             <input
                 type="text"
                 id="city"
                 v-model="form.address.city"
                 :disabled="authStore.isLoading"
                 placeholder="القاهرة"
-                class="rounded-lg border border-gray-300 p-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
+                class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
             />
           </div>
 
           <!-- State -->
           <div class="flex flex-col space-y-1">
-            <label for="state" class="text-xs font-medium text-gray-600">المحافظة / المنطقة</label>
+            <label for="state" class="text-xs font-medium text-gray-700">المحافظة / المنطقة</label>
             <input
                 type="text"
                 id="state"
                 v-model="form.address.state"
                 :disabled="authStore.isLoading"
                 placeholder="القاهرة"
-                class="rounded-lg border border-gray-300 p-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
+                class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
             />
           </div>
 
           <!-- Country -->
           <div class="flex flex-col space-y-1">
-            <label for="country" class="text-xs font-medium text-gray-600">الدولة</label>
+            <label for="country" class="text-xs font-medium text-gray-700">الدولة</label>
             <input
                 type="text"
                 id="country"
                 v-model="form.address.country"
                 :disabled="authStore.isLoading"
                 placeholder="مصر"
-                class="rounded-lg border border-gray-300 p-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
+                class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
             />
           </div>
 
           <!-- Postal Code -->
           <div class="flex flex-col space-y-1">
-            <label for="postalCode" class="text-xs font-medium text-gray-600">الرمز البريدي</label>
+            <label for="postalCode" class="text-xs font-medium text-gray-700">الرمز البريدي</label>
             <input
                 type="text"
                 id="postalCode"
                 v-model="form.address.postalCode"
                 :disabled="authStore.isLoading"
                 placeholder="11511"
-                class="rounded-lg border border-gray-300 p-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
+                class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
             />
           </div>
         </div>
       </div>
+
       <!-- Conditional Law Firm Name for Lawyers -->
       <div v-if="form.role === 'Lawyer'" class="flex flex-col space-y-1.5">
-        <label for="lawFirmName" class="text-sm font-medium text-gray-700">اسم مكتب المحاماة / الشركة</label>
+        <label for="lawFirmName" class="text-sm font-medium text-gray-800">اسم مكتب المحاماة / الشركة</label>
         <input
             type="text"
             id="lawFirmName"
             v-model="form.lawFirmName"
             :disabled="authStore.isLoading"
             placeholder="مكتب أسعد للمحاماة"
-            class="rounded-lg border border-gray-300 p-3 text-base outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
+            class="rounded-lg border border-gray-300 p-3 text-base text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-gray-100"
         />
         <span class="text-xs text-red-500" v-if="errors.lawFirmName">{{ errors.lawFirmName }}</span>
       </div>
@@ -207,7 +209,6 @@ const form = ref({
   password: '',
   role: 'Client',
   lawFirmName: '',
-  // Initialize the nested address object to match C# properties (camelCase for JSON)
   address: {
     street: '',
     city: '',
@@ -249,6 +250,7 @@ const validateForm = () => {
 
   return isValid;
 };
+
 const handleSubmit = async () => {
   if (!validateForm()) return;
 
@@ -266,7 +268,7 @@ const handleSubmit = async () => {
       email: form.value.email,
       phoneNumber: form.value.phoneNumber,
       password: form.value.password,
-      role: roleEnumMap[form.value.role] ?? 0, // Converts 'Client'/'Lawyer' to 0 or 1
+      role: roleEnumMap[form.value.role] ?? 0,
       lawFirmName: form.value.role === 'Lawyer' ? form.value.lawFirmName : undefined,
       address: `${form.value.address.street}, ${form.value.address.city}, ${form.value.address.state}, ${form.value.address.country}`.replace(/^[\s,]+|[\s,]+$/g, ''),
     });

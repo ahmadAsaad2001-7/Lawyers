@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Lawyers.Domain.Entities;
 using Lawyers.InfraStructure.Data;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
@@ -20,9 +21,16 @@ public static class AuthConfiguration
         builder.Services.AddIdentity<User, IdentityRole<int>>(options =>
             {
                 options.Password.RequireDigit = true;
-                options.Password.RequiredLength = 7;
+                options.Password.RequiredLength = 14;
+                options.Password.RequireNonAlphanumeric = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireLowercase = true;
                 options.User.RequireUniqueEmail = true;
                 options.SignIn.RequireConfirmedEmail = true;  
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.User.RequireUniqueEmail = true;
+
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
@@ -64,6 +72,14 @@ public static class AuthConfiguration
                         return Task.CompletedTask;
                     }
                 };
+            }).AddGoogle("Google", options =>
+            {
+                options.ClientId = builder.Configuration["Authentication:Google:ClientId"]!;
+                options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"]!;
+                options.SignInScheme = IdentityConstants.ExternalScheme; // ✅ required
+                options.Scope.Add("email");
+                options.Scope.Add("profile");
+                options.ClaimActions.MapJsonKey("picture", "picture"); // ✅ Google doesn't map this by default
             });
         
         builder.Services.AddAuthorization();

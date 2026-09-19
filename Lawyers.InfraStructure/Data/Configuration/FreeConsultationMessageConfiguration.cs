@@ -32,7 +32,7 @@ public class FreeConsultationMessageConfiguration : IEntityTypeConfiguration<Fre
             .HasMaxLength(45);
 
         builder.Property(m => m.CreatedAt)
-            .HasDefaultValueSql("NOW()");
+            .HasDefaultValueSql("GETUTCDATE()");
 
         // Foreign key relationship with LawyerProfile
         builder.HasOne(m => m.Lawyer)

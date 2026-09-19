@@ -1,5 +1,6 @@
 ﻿using System.Security.Claims;
 using Lawyers.Application.Interfaces;
+using Lawyers.Domain.Entities.Enums;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 namespace Lawyers.Infrastructure.Services;
@@ -32,4 +33,13 @@ public class CurrentUserService : ICurrentUserService
             .FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value == "Admin";
 
     public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
+    
+    public Roles? Role
+    {
+        get
+        {
+            var roleClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.Value;
+            return Enum.TryParse<Roles>(roleClaim, ignoreCase: true, out var role) ? role : null;
+        }
+    }
 }

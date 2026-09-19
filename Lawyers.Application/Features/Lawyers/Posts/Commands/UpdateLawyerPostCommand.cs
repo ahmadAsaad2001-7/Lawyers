@@ -3,10 +3,11 @@ using Lawyers.Domain.Entities.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Lawyers.Application.Features.Lawyers.Topics.Commands;
+namespace Lawyers.Application.Features.Lawyers.Posts.Commands;
+
+// ✅ LawyerId removed — ownership check happens server-side
 public record UpdateLawyerPostCommand(
     int Id,
-    int LawyerId,
     string Title,
     string Content,
     string? Excerpt,
@@ -15,12 +16,22 @@ public record UpdateLawyerPostCommand(
     bool IsFeatured
 ) : IRequest<bool>;
 
-public class UpdateLawyerPostCommandHandler(IUnitOfWork unitOfWork) 
+public class UpdateLawyerPostCommandHandler(IUnitOfWork unitOfWork, ICurrentUserService currentUser)
     : IRequestHandler<UpdateLawyerPostCommand, bool>
 {
     public async Task<bool> Handle(UpdateLawyerPostCommand request, CancellationToken cancellationToken)
-    {var post = await unitOfWork.LawyerPosts.Query()
-            .FirstOrDefaultAsync(p => p.Id == request.Id && p.LawyerId == request.LawyerId, cancellationToken);
+    {
+        var userId = currentUser.UserId!.Value;
+
+        var lawyerProfile = await unitOfWork.LawyerProfiles.Query()
+            .FirstOrDefaultAsync(lp => lp.UserId == userId, cancellationToken);
+
+        if (lawyerProfile == null)
+            throw new UnauthorizedAccessException("Only lawyers can edit posts.");
+
+        // ✅ ownership enforced by LawyerId derived from the caller, not the request body
+        var post = await unitOfWork.LawyerPosts.Query()
+            .FirstOrDefaultAsync(p => p.Id == request.Id && p.LawyerId == lawyerProfile.Id, cancellationToken);
 
         if (post == null) return false;
 
@@ -33,7 +44,6 @@ public class UpdateLawyerPostCommandHandler(IUnitOfWork unitOfWork)
 
         unitOfWork.LawyerPosts.Update(post);
         await unitOfWork.SaveChangesAsync(cancellationToken);
-
         return true;
     }
 }

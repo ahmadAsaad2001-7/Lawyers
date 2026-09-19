@@ -81,17 +81,23 @@ public class GetLawyersQueryHandler : IRequestHandler<GetLawyersQuery, PagedResu
             // 5. Apply Pagination & Map to DTO (Second DB Execution Point)
             _logger.LogInformation("[GetLawyersQuery] Executing database ToListAsync query with Skip: {Skip}, Take: {Take}...", (request.PageNumber - 1) * request.PageSize, request.PageSize);
             var items = await queryable
+                .Include(l => l.User) // ✅ CRITICAL: Include User to access ProfileImageUrl and PhoneNumber
                 .Skip((request.PageNumber - 1) * request.PageSize)
                 .Take(request.PageSize)
                 .Select(l => new LawyerDto
                 {
                     Id = l.Id,
                     FullName = l.FullName,
+                    Avatar = l.User.ProfileImageUrl, // ✅ THE FIX: Map the image URL
                     Bio = l.Bio,
                     HourlyRate = l.HourlyRate,
                     Specialization = l.Specialization,
                     City = l.Address.City,
-                    AverageRating = l.AverageRating
+                    State = l.Address.State,
+                    AverageRating = l.AverageRating,
+                    IsVerified = l.IsVerified,
+                    LawFirmName = l.LawFirmName,     // ✅ Added to match frontend
+                    Phone = l.User.PhoneNumber       // ✅ Added to match frontend
                 })
                 .ToListAsync(cancellationToken);
 

@@ -10,17 +10,24 @@ public class UnitOfWork : IUnitOfWork
 {
     private readonly AppDbContext _context;
     private Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? _currentTransaction;
+    
     private IRepository<User>? _users;
     private IRepository<ClientProfile>? _clientProfiles;
     private IRepository<LawyerProfile>? _lawyerProfiles;
     private IRepository<Consultation>? _consultations;
     private IRepository<Payment>? _payments;
     private IRepository<Message>? _messages;
-    private IRepository<FreeConsultationMessage> _freeConsultationMessage;
-    private IRepository<LawyerPost> _LawyerPosts;
-    private Repository<VoteParticipant> _VoteParticipants;
-    private Repository<AdminVote> _AdminVotes;
-
+    private IRepository<FreeConsultationMessage>? _freeConsultationMessage;
+    private IRepository<LawyerPost>? _lawyerPosts;
+    private IRepository<VoteParticipant>? _voteParticipants;
+    private IRepository<AdminVote>? _adminVotes;
+    private IRepository<UserSuspension>? _userSuspensions;
+    private IRepository<PlatformNotification>? _platformNotifications;
+    private IRepository<LawyerAvailability>? _lawyerAvailabilities;
+    
+    // ✅ ADDED: Backing fields for the new repositories
+    private IRepository<LawyerWeeklySchedule>? _lawyerWeeklySchedules;
+    private IRepository<LawyerAvailabilityException>? _lawyerAvailabilityExceptions;
 
     public UnitOfWork(AppDbContext context)
     {
@@ -33,11 +40,21 @@ public class UnitOfWork : IUnitOfWork
     public IRepository<Consultation> Consultations => _consultations ??= new Repository<Consultation>(_context);
     public IRepository<Payment> Payments => _payments ??= new Repository<Payment>(_context);
     public IRepository<Message> Messages => _messages ??= new Repository<Message>(_context);
-    public IRepository<FreeConsultationMessage> FreeMessages => _freeConsultationMessage??= new Repository<FreeConsultationMessage>(_context);
-    public IRepository<LawyerPost> LawyerPosts => _LawyerPosts??=new Repository<LawyerPost>(_context);
-    public IRepository<VoteParticipant> VoteParticipants => _VoteParticipants??=new Repository<VoteParticipant>(_context);
-    public IRepository<AdminVote> AdminVotes => _AdminVotes??=new Repository<AdminVote>(_context);
+    public IRepository<FreeConsultationMessage> FreeMessages => _freeConsultationMessage ??= new Repository<FreeConsultationMessage>(_context);
+    public IRepository<LawyerPost> LawyerPosts => _lawyerPosts ??= new Repository<LawyerPost>(_context);
+    public IRepository<VoteParticipant> VoteParticipants => _voteParticipants ??= new Repository<VoteParticipant>(_context);
+    public IRepository<AdminVote> AdminVotes => _adminVotes ??= new Repository<AdminVote>(_context);
+    public IRepository<PlatformNotification> PlatformNotifications => _platformNotifications ??= new Repository<PlatformNotification>(_context);
+    public IRepository<LawyerAvailability> LawyerAvailabilities => _lawyerAvailabilities ??= new Repository<LawyerAvailability>(_context);
+    public IRepository<UserSuspension> UserSuspensions => _userSuspensions ??= new Repository<UserSuspension>(_context);
+   
 
+    // ✅ FIXED: Properly initialized with lazy loading pattern
+    public IRepository<LawyerWeeklySchedule> LawyerWeeklySchedules => 
+        _lawyerWeeklySchedules ??= new Repository<LawyerWeeklySchedule>(_context);
+
+    public IRepository<LawyerAvailabilityException> LawyerAvailabilityExceptions => 
+        _lawyerAvailabilityExceptions ??= new Repository<LawyerAvailabilityException>(_context);
 
     public async Task BeginTransactionAsync(IsolationLevel isolationLevel = IsolationLevel.ReadCommitted)
     {

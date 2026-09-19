@@ -1,9 +1,8 @@
 ﻿namespace Lawyers.Domain.Entities.Enums;
-
 public enum Roles
 {
-    Lawyer=1,
-    Client=2,
-    Admin=3
-    
+    Client = 0,
+    Lawyer = 1,
+    PendingLawyer = 2, // ✅ new: registered as lawyer, not yet verified/promoted
+    Admin = 3
 }

@@ -25,10 +25,12 @@ public class ConsultationHub : Hub
     // delivering SDP/ICE to another tab that happens to be in the same chat.
     private static readonly ConcurrentDictionary<int, ActiveCall> ActiveCalls = new();
     private readonly IUnitOfWork _unitOfWork;
+    private readonly INotificationService _notificationService;
 
-    public ConsultationHub(IUnitOfWork unitOfWork)
+    public ConsultationHub(IUnitOfWork unitOfWork, INotificationService notificationService)
     {
         _unitOfWork = unitOfWork;
+        _notificationService = notificationService;
     }
 
     private int GetCurrentUserId()
@@ -156,6 +158,13 @@ public class ConsultationHub : Hub
                          Content = content,
                          CreatedAt = message.CreatedAt
                      });
+
+        var otherUserId = await GetOtherParticipantIdAsync(consultationId);
+        if (otherUserId > 0 && otherUserId != userId)
+        {
+            var preview = content.Length <= 80 ? content : content[..80] + "...";
+            await _notificationService.NotifyAsync(otherUserId, "رسالة جديدة", preview);
+        }
     }
 
     // 📜 HISTORY FETCH (Called by frontend on load)

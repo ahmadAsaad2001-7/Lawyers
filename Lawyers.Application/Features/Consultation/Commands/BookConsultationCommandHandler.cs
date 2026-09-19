@@ -5,7 +5,7 @@ using Lawyers.Domain.Entities.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
-
+using Lawyers.Application.Features.LawyerSchedule.Queries;
 namespace Lawyers.Application.Features.Consultations.Commands;
 
 public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCommand, BookingResponseDto>
@@ -15,15 +15,22 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
     private readonly IUnitOfWork _unitOfWork;
     private readonly ICurrentUserService _currentUserService;
     private readonly IPaymentService _paymentService;
-
+    private readonly IMediator _mediator;
+    private readonly INotificationService _notificationService;
+    
     public BookConsultationCommandHandler(
         IUnitOfWork unitOfWork,
         ICurrentUserService currentUserService,
-        IPaymentService paymentService)
+        IPaymentService paymentService,
+        IMediator mediator,
+        INotificationService notificationService
+        )
     {
         _unitOfWork = unitOfWork;
         _currentUserService = currentUserService;
         _paymentService = paymentService;
+        _mediator = mediator;
+        _notificationService = notificationService;
     }
 
     public async Task<BookingResponseDto> Handle(BookConsultationCommand request, CancellationToken cancellationToken)
@@ -33,9 +40,10 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
             throw new UnauthorizedAccessException("You must be logged in to book a consultation.");
         }
 
-        if (request.DurationMinutes <= 0)
+        // ✅ Ensure duration is a multiple of 60 (matches the new hourly selection UI)
+        if (request.DurationMinutes <= 0 || request.DurationMinutes % 60 != 0)
         {
-            throw new ArgumentException("Consultation duration must be greater than zero.", nameof(request.DurationMinutes));
+            throw new ArgumentException("Consultation duration must be greater than zero and a multiple of 60 minutes.", nameof(request.DurationMinutes));
         }
 
         var lawyer = await _unitOfWork.LawyerProfiles.GetByIdAsync(request.LawyerId, cancellationToken);
@@ -63,7 +71,7 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
             throw new Exception("Client profile not found.");
         }
 
-        // 🛡️ ADMIN BYPASS: no overlap check, no payment, instantly Confirmed
+        // 🛡️ ADMIN BYPASS: no overlap check, no availability check, no payment, instantly Confirmed
         if (_currentUserService.IsAdmin)
         {
             var adminConsultation = new Domain.Entities.Consultation
@@ -78,6 +86,9 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
             await _unitOfWork.Consultations.AddAsync(adminConsultation, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+            await _notificationService.SendBookingConfirmedAsync(
+                clientProfile.UserId, lawyer.UserId, adminConsultation.ScheduledAt);
+
             return new BookingResponseDto
             {
                 ConsultationId = adminConsultation.Id,
@@ -90,7 +101,7 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
         }
 
         // ═══════════════════════════════════════════════════
-        // Normal client flow continues below (unchanged)
+        // Normal client flow continues below
         // ═══════════════════════════════════════════════════
 
         var totalCost = lawyer.HourlyRate * (request.DurationMinutes / 60m);
@@ -149,6 +160,9 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
             throw;
         }
 
+        await _notificationService.SendNewBookingAsync(
+            clientProfile.UserId, lawyer.UserId, consultation.ScheduledAt);
+
         return new BookingResponseDto
         {
             ConsultationId = consultation.Id,
@@ -160,52 +174,82 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
         };
     }
 
-    private async Task<Domain.Entities.Consultation> ReserveConsultationSlotAsync(
-        BookConsultationCommand request,
-        int clientProfileId,
-        CancellationToken cancellationToken)
-    {
-        await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable);
+  private async Task<Domain.Entities.Consultation> ReserveConsultationSlotAsync(
+    BookConsultationCommand request,
+    int clientProfileId,
+    CancellationToken cancellationToken)
+{
+    await _unitOfWork.BeginTransactionAsync(IsolationLevel.Serializable);
 
+    try
+    {
+        TimeZoneInfo localTimeZone;
         try
         {
-            var requestedStart = request.ScheduledAt;
-            var requestedEnd = request.ScheduledAt.AddMinutes(request.DurationMinutes);
-
-            var isOverlapping = await _unitOfWork.Consultations.Query()
-                .AnyAsync(c =>
-                    c.LawyerId == request.LawyerId &&
-                    c.Status != ConsultationStatus.Cancelled &&
-                    c.ScheduledAt < requestedEnd &&
-                    c.ScheduledAt.AddMinutes(c.DurationMinutes) > requestedStart,
-                    cancellationToken);
-
-            if (isOverlapping)
-            {
-                throw new Exception("This lawyer is already booked at the requested time.");
-            }
-
-            var consultation = new Domain.Entities.Consultation
-            {
-                ClientId = clientProfileId,
-                LawyerId = request.LawyerId,
-                ScheduledAt = request.ScheduledAt,
-                DurationMinutes = request.DurationMinutes,
-                Status = ConsultationStatus.Pending
-            };
-
-            await _unitOfWork.Consultations.AddAsync(consultation, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-            await _unitOfWork.CommitTransactionAsync();
-
-            return consultation;
+            localTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Africa/Cairo");
         }
         catch
         {
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
+            localTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Egypt Standard Time");
         }
+
+        var localRequestedStart = TimeZoneInfo.ConvertTimeFromUtc(request.ScheduledAt, localTimeZone);
+        var utcRequestedEnd = request.ScheduledAt.AddMinutes(request.DurationMinutes);
+        var hoursNeeded = request.DurationMinutes / 60;
+
+        var requestedHours = Enumerable.Range(0, hoursNeeded)
+            .Select(i => localRequestedStart.Hour + i)
+            .ToList();
+
+        // ✅ REPLACED: no longer queries the empty LawyerAvailabilities table.
+        // Uses the same computation (weekly schedule + exceptions + existing
+        // bookings) that GetActualAvailabilityQueryHandler uses for the picker,
+        // so the two can never disagree again.
+        var actualAvailableHours = await _mediator.Send(
+            new GetActualAvailabilityQuery(
+                request.LawyerId, localRequestedStart.Date),
+            cancellationToken);
+
+        var missingHours = requestedHours.Except(actualAvailableHours).ToList();
+        if (missingHours.Count > 0)
+        {
+            throw new Exception($"المحامي غير متاح طوال المدة المطلوبة. الساعات غير المتاحة: {string.Join(", ", missingHours.Select(h => $"{h}:00"))}");
+        }
+
+        var isOverlapping = await _unitOfWork.Consultations.Query()
+            .AnyAsync(c =>
+                c.LawyerId == request.LawyerId &&
+                c.Status != ConsultationStatus.Cancelled &&
+                c.ScheduledAt < utcRequestedEnd &&
+                c.ScheduledAt.AddMinutes(c.DurationMinutes) > request.ScheduledAt,
+                cancellationToken);
+
+        if (isOverlapping)
+        {
+            throw new Exception("هذا الموعد لم يعد متاحاً (تم حجزه من قبل شخص آخر).");
+        }
+
+        var consultation = new Domain.Entities.Consultation
+        {
+            ClientId = clientProfileId,
+            LawyerId = request.LawyerId,
+            ScheduledAt = request.ScheduledAt,
+            DurationMinutes = request.DurationMinutes,
+            Status = ConsultationStatus.Pending
+        };
+
+        await _unitOfWork.Consultations.AddAsync(consultation, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.CommitTransactionAsync();
+
+        return consultation;
     }
+    catch
+    {
+        await _unitOfWork.RollbackTransactionAsync();
+        throw;
+    }
+}
 
     private async Task CancelReservedConsultationAsync(int consultationId, CancellationToken cancellationToken)
     {

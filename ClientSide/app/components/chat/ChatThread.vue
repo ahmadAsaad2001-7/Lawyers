@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, nextTick, computed, watch } from 'vue';
+import { ref, onMounted, nextTick, computed, watch } from 'vue';
 import { useAuthStore } from "~/stores/auth";
 import { useChatStore } from "~/stores/Chat";
 
@@ -22,13 +22,13 @@ const token = computed(() => authStore.token || '');
 const isAdmin = computed(() => authStore.user?.role === 'Admin');
 
 const canChat = computed(() => {
-  if (isAdmin.value) return true;  // ✅ Admin always allowed
+  if (isAdmin.value) return true;
   if (!details.value) return false;
   return ['Confirmed', 'InProgress'].includes(details.value.status);
 });
 
 const statusMessage = computed(() => {
-  if (isAdmin.value) return '';  // ✅ No status message for admin
+  if (isAdmin.value) return '';
   if (!details.value) return '';
   const status = details.value.status;
   if (status === 'Pending') return 'الدفع غير مكتمل — المحادثة تُفتح بعد تأكيد الحجز';
@@ -44,7 +44,12 @@ const scrollToBottom = async () => {
   }
 };
 
-watch(() => chatStore.messages.length, scrollToBottom);
+watch(
+    () => chatStore.messages.length,
+    () => {
+      scrollToBottom();
+    }
+);
 
 onMounted(async () => {
   if (!token.value) return;
@@ -54,12 +59,9 @@ onMounted(async () => {
     });
   } catch (e) { console.error('Failed to load consultation details', e); }
 
-  // ✅ Connection already lives in the store (page-level). Just open this chat.
   await chatStore.openChat(props.consultationId);
   await scrollToBottom();
 });
-
-
 
 const handleSend = async () => {
   const content = newMessage.value.trim();

@@ -21,10 +21,14 @@ public class RegisterCommandHandler : IRequestHandler<RegisterCommand, AuthRespo
             request.Email, 
             request.Password, 
             request.FullName, 
-            (Roles)request.Role,
+            request.Role,
             request.LawFirmName,
             request.Address,
-            request.PhoneNumber
+            request.PhoneNumber,
+            request.BarLicenseNumber,     
+            request.Specialization,        
+            request.Bio,                   
+            request.HourlyRate              
         );
         
         // 2. Call the Service (This will now handle User Creation + Email Sending internally)
