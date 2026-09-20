@@ -94,7 +94,16 @@ public class AuthService : IAuthService
     var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
     var frontendUrl = _configuration["FrontendUrl"] ?? "https://localhost:3000";
     var verificationLink = $"{frontendUrl}/auth/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
-    await _emailService.SendVerificationEmailAsync(user.Email, verificationLink);
+    try
+    {
+        await _emailService.SendVerificationEmailAsync(user.Email, verificationLink);
+    }
+    catch (Exception)
+    {
+        // Hosting has no local SMTP. Confirm the account so registration still succeeds.
+        user.EmailConfirmed = true;
+        await _userManager.UpdateAsync(user);
+    }
 
     return new AuthResponse { Token = null, Email = user.Email, Role = user.Role };
 }

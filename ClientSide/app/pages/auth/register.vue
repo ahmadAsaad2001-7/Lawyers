@@ -239,8 +239,11 @@ const validateForm = () => {
     errors.value.phoneNumber = 'يرجى إدخال رقم هاتف مصري صحيح (مثال: 01012345678).';
     isValid = false;
   }
-  if (!form.value.password || form.value.password.length < 7) {
-    errors.value.password = 'كلمة المرور يجب أن تكون 7 أحرف على الأقل.';
+  if (!form.value.password || form.value.password.length < 8) {
+    errors.value.password = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل، وتشمل حرفاً كبيراً ورقم ورمزاً.';
+    isValid = false;
+  } else if (!/[A-Z]/.test(form.value.password) || !/[a-z]/.test(form.value.password) || !/[0-9]/.test(form.value.password) || !/[^A-Za-z0-9]/.test(form.value.password)) {
+    errors.value.password = 'كلمة المرور يجب أن تحتوي على حرف كبير وصغير ورقم ورمز (مثال: Test@123).';
     isValid = false;
   }
   if (form.value.role === 'Lawyer' && !form.value.lawFirmName.trim()) {
@@ -270,7 +273,13 @@ const handleSubmit = async () => {
       password: form.value.password,
       role: roleEnumMap[form.value.role] ?? 0,
       lawFirmName: form.value.role === 'Lawyer' ? form.value.lawFirmName : undefined,
-      address: `${form.value.address.street}, ${form.value.address.city}, ${form.value.address.state}, ${form.value.address.country}`.replace(/^[\s,]+|[\s,]+$/g, ''),
+      address: {
+        street: form.value.address.street,
+        city: form.value.address.city,
+        state: form.value.address.state,
+        country: form.value.address.country,
+        postalCode: form.value.address.postalCode,
+      },
     });
 
     if (response) {
@@ -281,7 +290,10 @@ const handleSubmit = async () => {
     }
   } catch (error: any) {
     console.error('Registration failed:', error);
-    apiError.value = error.data?.message || 'فشل إنشاء الحساب. يرجى التحقق من البيانات والمحاولة مرة أخرى.';
+    const validation = error.data?.errors
+      ? Object.values(error.data.errors).flat().join(' ')
+      : '';
+    apiError.value = error.data?.message || validation || 'فشل إنشاء الحساب. يرجى التحقق من البيانات والمحاولة مرة أخرى.';
   }
 };
 </script>
