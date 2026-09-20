@@ -89,17 +89,34 @@
         <h3 class="text-sm font-bold text-emerald-900" style="font-family: 'Amiri', serif;">العنوان</h3>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <!-- Street -->
-          <div class="flex flex-col space-y-1 sm:col-span-2">
-            <label for="street" class="text-xs font-medium text-gray-700">الشارع / العنوان التفصيلي</label>
-            <input
-                type="text"
-                id="street"
-                v-model="form.address.street"
+          <!-- Country -->
+          <div class="flex flex-col space-y-1">
+            <label for="country" class="text-xs font-medium text-gray-700">الدولة</label>
+            <select
+                id="country"
+                v-model="form.address.country"
                 :disabled="authStore.isLoading"
-                placeholder="123 شارع التحرير"
                 class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
-            />
+            >
+              <option v-for="country in EGYPT_COUNTRIES" :key="country" :value="country">{{ country }}</option>
+            </select>
+          </div>
+
+          <!-- State -->
+          <div class="flex flex-col space-y-1">
+            <label for="state" class="text-xs font-medium text-gray-700">المحافظة</label>
+            <select
+                id="state"
+                v-model="form.address.state"
+                :disabled="authStore.isLoading"
+                class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
+            >
+              <option value="" disabled>اختر المحافظة</option>
+              <option v-for="governorate in EGYPT_GOVERNORATES" :key="governorate" :value="governorate">
+                {{ governorate }}
+              </option>
+            </select>
+            <span class="text-xs text-red-500" v-if="errors.state">{{ errors.state }}</span>
           </div>
 
           <!-- City -->
@@ -110,33 +127,7 @@
                 id="city"
                 v-model="form.address.city"
                 :disabled="authStore.isLoading"
-                placeholder="القاهرة"
-                class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
-            />
-          </div>
-
-          <!-- State -->
-          <div class="flex flex-col space-y-1">
-            <label for="state" class="text-xs font-medium text-gray-700">المحافظة / المنطقة</label>
-            <input
-                type="text"
-                id="state"
-                v-model="form.address.state"
-                :disabled="authStore.isLoading"
-                placeholder="القاهرة"
-                class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
-            />
-          </div>
-
-          <!-- Country -->
-          <div class="flex flex-col space-y-1">
-            <label for="country" class="text-xs font-medium text-gray-700">الدولة</label>
-            <input
-                type="text"
-                id="country"
-                v-model="form.address.country"
-                :disabled="authStore.isLoading"
-                placeholder="مصر"
+                placeholder="مدينة نصر"
                 class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
             />
           </div>
@@ -150,6 +141,19 @@
                 v-model="form.address.postalCode"
                 :disabled="authStore.isLoading"
                 placeholder="11511"
+                class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
+            />
+          </div>
+
+          <!-- Street -->
+          <div class="flex flex-col space-y-1 sm:col-span-2">
+            <label for="street" class="text-xs font-medium text-gray-700">الشارع / العنوان التفصيلي</label>
+            <input
+                type="text"
+                id="street"
+                v-model="form.address.street"
+                :disabled="authStore.isLoading"
+                placeholder="123 شارع التحرير"
                 class="rounded-lg border border-gray-300 p-2.5 text-sm text-gray-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-gray-100"
             />
           </div>
@@ -199,6 +203,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useAuthStore } from '~/stores/auth';
+import { EGYPT_COUNTRIES, EGYPT_COUNTRY, EGYPT_GOVERNORATES } from '~/data/egyptLocations';
 
 const authStore = useAuthStore();
 
@@ -213,7 +218,7 @@ const form = ref({
     street: '',
     city: '',
     state: '',
-    country: '',
+    country: EGYPT_COUNTRY,
     postalCode: ''
   }
 });
@@ -250,6 +255,10 @@ const validateForm = () => {
     errors.value.lawFirmName = 'يرجى إدخال اسم مكتب المحاماة.';
     isValid = false;
   }
+  if (!form.value.address.state) {
+    errors.value.state = 'يرجى اختيار المحافظة.';
+    isValid = false;
+  }
 
   return isValid;
 };
@@ -277,7 +286,7 @@ const handleSubmit = async () => {
         street: form.value.address.street,
         city: form.value.address.city,
         state: form.value.address.state,
-        country: form.value.address.country,
+        country: EGYPT_COUNTRY,
         postalCode: form.value.address.postalCode,
       },
     });

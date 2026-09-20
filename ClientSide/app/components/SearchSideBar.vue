@@ -2,6 +2,7 @@
 <script setup lang="ts">
 import { useLawyerSearchStore } from '~/stores/lawyerSearch';
 import { watchDebounced } from '@vueuse/core';
+import { EGYPT_GOVERNORATES } from '~/data/egyptLocations';
 
 const store = useLawyerSearchStore();
 
@@ -42,33 +43,9 @@ const applyFilters = () => {
           class="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400"
       >
         <option value="">جميع المحافظات</option>
-        <option value="القاهرة">القاهرة</option>
-        <option value="الإسكندرية">الإسكندرية</option>
-        <option value="بورسعيد">بورسعيد</option>
-        <option value="السويس">السويس</option>
-        <option value="دمياط">دمياط</option>
-        <option value="الدقهلية">الدقهلية</option>
-        <option value="الشرقية">الشرقية</option>
-        <option value="القليوبية">القليوبية</option>
-        <option value="كفر الشيخ">كفر الشيخ</option>
-        <option value="الغربية">الغربية</option>
-        <option value="المنوفية">المنوفية</option>
-        <option value="البحيرة">البحيرة</option>
-        <option value="الإسماعيلية">الإسماعيلية</option>
-        <option value="الجيزة">الجيزة</option>
-        <option value="بني سويف">بني سويف</option>
-        <option value="الفيوم">الفيوم</option>
-        <option value="المنيا">المنيا</option>
-        <option value="أسيوط">أسيوط</option>
-        <option value="سوهاج">سوهاج</option>
-        <option value="قنا">قنا</option>
-        <option value="الأقصر">الأقصر</option>
-        <option value="أسوان">أسوان</option>
-        <option value="البحر الأحمر">البحر الأحمر</option>
-        <option value="الوادي الجديد">الوادي الجديد</option>
-        <option value="مطروح">مطروح</option>
-        <option value="شمال سيناء">شمال سيناء</option>
-        <option value="جنوب سيناء">جنوب سيناء</option>
+        <option v-for="governorate in EGYPT_GOVERNORATES" :key="governorate" :value="governorate">
+          {{ governorate }}
+        </option>
       </select>
     </div>
 
