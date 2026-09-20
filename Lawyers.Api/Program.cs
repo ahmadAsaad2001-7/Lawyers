@@ -8,6 +8,14 @@ using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.Secrets.json", optional: true, reloadOnChange: true);
 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString) ||
+    connectionString.Contains("YOUR_SQL_SERVER", StringComparison.OrdinalIgnoreCase))
+{
+    throw new InvalidOperationException(
+        "SQL connection string is missing. Publish appsettings.Secrets.json with the site, or set ConnectionStrings__DefaultConnection on the host.");
+}
+
 // 1. Load all dependencies
 builder.AddDependencies();
 builder.HangFireConfig();

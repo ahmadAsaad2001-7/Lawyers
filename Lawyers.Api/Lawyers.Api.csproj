@@ -27,7 +27,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Content Update="appsettings.Secrets.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+      <Content Update="appsettings.Secrets.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>
