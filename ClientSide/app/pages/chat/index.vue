@@ -59,7 +59,7 @@ onUnmounted(() => {
 const clearSelection = () => {
   activeChatId.value = null;
   activeInquiryId.value = null;
-  chatStore.activeConsultationId = null;
+  void chatStore.clearActiveConsultation();
 };
 
 const selectChat = (id: number) => {
@@ -74,7 +74,7 @@ const selectInquiry = (id: number) => {
   // Leaving the chat view entirely — make sure the store stops
   // treating any previous chat as "active" so its unread counter
   // resumes incrementing instead of silently swallowing messages.
-  chatStore.activeConsultationId = null;
+  void chatStore.clearActiveConsultation();
 };
 
 const handleReplySent = (inquiryId: number) => {

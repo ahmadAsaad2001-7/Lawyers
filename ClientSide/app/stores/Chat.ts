@@ -877,6 +877,12 @@ export const useChatStore = defineStore('chat', () => {
 
         messages.value = history;
         activeConsultationId.value = id;
+        await safeInvoke('SetActiveConsultation', id);
+    };
+
+    const clearActiveConsultation = async () => {
+        activeConsultationId.value = null;
+        await safeInvoke('SetActiveConsultation', null);
     };
 
     const ensureConsultation = async (
@@ -1072,6 +1078,11 @@ export const useChatStore = defineStore('chat', () => {
                         connection &&
                         connectionStatus.value === 'connected'
                     ) {
+                        await safeInvoke(
+                            'SetActiveConsultation',
+                            activeId
+                        );
+
                         try {
                             const history = await connection.invoke<
                                 ChatMessage[]
@@ -1745,6 +1756,8 @@ export const useChatStore = defineStore('chat', () => {
         cleanupCall();
 
         if (connection) {
+            await safeInvoke('SetActiveConsultation', null);
+
             try {
                 await connection.stop();
             } catch (error) {
@@ -1808,6 +1821,7 @@ export const useChatStore = defineStore('chat', () => {
 
         // Chat actions
         openChat,
+        clearActiveConsultation,
         sendMessage,
         seedUnread,
         initializeGlobal,

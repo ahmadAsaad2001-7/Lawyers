@@ -32,7 +32,7 @@ public class ConsultationHub : Hub
         _unitOfWork = unitOfWork;
         _notificationService = notificationService;
     }
-
+    private static readonly ConcurrentDictionary<string, int> ActiveConsultationByConnection = new();
     private int GetCurrentUserId()
     {
         var claim = Context.User?.FindFirst(ClaimTypes.NameIdentifier);
@@ -83,6 +83,16 @@ public class ConsultationHub : Hub
         }
         await base.OnConnectedAsync();
     }
+    
+    public Task SetActiveConsultation(int? consultationId)
+    {
+        if (consultationId is int id)
+            ActiveConsultationByConnection[Context.ConnectionId] = id;
+        else
+            ActiveConsultationByConnection.TryRemove(Context.ConnectionId, out _);
+
+        return Task.CompletedTask;
+    }
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
@@ -91,7 +101,7 @@ public class ConsultationHub : Hub
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, $"user_{userId}");
         }
-
+        ActiveConsultationByConnection.TryRemove(Context.ConnectionId, out _);
         foreach (var call in ActiveCalls.Where(x =>
                      x.Value.CallerConnectionId == Context.ConnectionId ||
                      x.Value.AnswererConnectionId == Context.ConnectionId).ToList())
@@ -162,8 +172,14 @@ public class ConsultationHub : Hub
         var otherUserId = await GetOtherParticipantIdAsync(consultationId);
         if (otherUserId > 0 && otherUserId != userId)
         {
-            var preview = content.Length <= 80 ? content : content[..80] + "...";
-            await _notificationService.NotifyAsync(otherUserId, "رسالة جديدة", preview);
+            bool otherIsViewingThisThread = ActiveConsultationByConnection
+                .Any(kv => kv.Key != Context.ConnectionId && kv.Value == consultationId);
+
+            if (!otherIsViewingThisThread)
+            {
+                var preview = content.Length <= 80 ? content : content[..80] + "...";
+                await _notificationService.NotifyAsync(otherUserId, "رسالة جديدة", preview, consultationId: consultationId);
+            }
         }
     }
 

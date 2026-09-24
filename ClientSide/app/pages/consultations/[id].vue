@@ -193,7 +193,7 @@ watch(consultationId, (id) => activateConsultation(id), { immediate: true })
 
 onUnmounted(() => {
   if (chatStore.activeConsultationId === consultationId.value) {
-    chatStore.activeConsultationId = null
+    void chatStore.clearActiveConsultation()
   }
 })
 </script>
