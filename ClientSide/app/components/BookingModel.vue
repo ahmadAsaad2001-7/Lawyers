@@ -23,6 +23,7 @@ const emit = defineEmits<{
 }>();
 
 const { isSubmitting, bookingError, submitBooking } = useBooking();
+const chatStore = useChatStore();
 const config = useRuntimeConfig();
 
 //  TRACING: Log lawyer info when modal opens
@@ -271,6 +272,14 @@ const handleSubmit = async () => {
   });
 
   if (result) {
+    await chatStore.ensureConsultation({
+      id: result.consultationId,
+      status: result.status,
+      scheduledAt: result.scheduledAt,
+      otherUserName: props.lawyer.name,
+      otherUserImageUrl: props.lawyer.avatar || null,
+      otherUserRole: 'Lawyer',
+    });
     emit('booked', result as BookingResponseDto);
   }
 };

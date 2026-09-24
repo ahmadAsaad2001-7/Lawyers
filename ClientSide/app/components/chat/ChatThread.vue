@@ -9,31 +9,35 @@ const props = defineProps<{
 
 const chatStore = useChatStore();
 const authStore = useAuthStore();
-const config = useRuntimeConfig();
 
 const newMessage = ref('');
 const isSending = ref(false);
 const messagesContainer = ref<HTMLElement | null>(null);
-const details = ref<any>(null);
 const isCallMenuOpen = ref(false);
 
 const currentUserId = computed(() => Number(authStore.user?.userId ?? 0));
 const token = computed(() => authStore.token || '');
 const isAdmin = computed(() => authStore.user?.role === 'Admin');
 
+const consultation = computed(() =>
+    chatStore.consultations.find((c) => c.id === props.consultationId)
+);
+
+const status = computed(() => consultation.value?.status);
+
 const canChat = computed(() => {
   if (isAdmin.value) return true;
-  if (!details.value) return false;
-  return ['Confirmed', 'InProgress'].includes(details.value.status);
+  if (!status.value) return false;
+  return ['Confirmed', 'InProgress'].includes(status.value);
 });
 
 const statusMessage = computed(() => {
   if (isAdmin.value) return '';
-  if (!details.value) return '';
-  const status = details.value.status;
-  if (status === 'Pending') return 'الدفع غير مكتمل — المحادثة تُفتح بعد تأكيد الحجز';
-  if (status === 'Cancelled') return 'تم إلغاء الحجز';
-  if (status === 'Completed') return 'انتهت الاستشارة';
+  const current = status.value;
+  if (!current) return '';
+  if (current === 'Pending') return 'الدفع غير مكتمل — المحادثة تُفتح بعد تأكيد الحجز';
+  if (current === 'Cancelled') return 'تم إلغاء الحجز';
+  if (current === 'Completed') return 'انتهت الاستشارة';
   return '';
 });
 
@@ -53,13 +57,13 @@ watch(
 
 onMounted(async () => {
   if (!token.value) return;
-  try {
-    details.value = await $fetch(`${config.public.apiBase}/consultations/${props.consultationId}/details`, {
-      headers: { Authorization: `Bearer ${token.value}` }
-    });
-  } catch (e) { console.error('Failed to load consultation details', e); }
 
   await chatStore.openChat(props.consultationId);
+
+  if (!consultation.value) {
+    await chatStore.syncConsultation(props.consultationId);
+  }
+
   await scrollToBottom();
 });
 
@@ -89,11 +93,11 @@ const formatTime = (dateString: string) => {
     <div class="border-b border-gray-100 bg-emerald-50/30 p-4">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-800 font-bold">
-          {{ details?.otherUserName?.charAt(0) || 'م' }}
+          {{ consultation?.otherUserName?.charAt(0) || 'م' }}
         </div>
         <div class="flex-1">
           <h3 class="font-bold text-emerald-950 text-sm">
-            {{ details?.otherUserName || 'جاري التحميل...' }}
+            {{ consultation?.otherUserName || 'جاري التحميل...' }}
           </h3>
           <span
               class="text-xs"

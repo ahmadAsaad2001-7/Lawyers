@@ -25,7 +25,8 @@ public class ConsultationConfirmedSignalRHandler : INotificationHandler<Consulta
             await _notificationService.SendBookingConfirmedAsync(
                 notification.ClientId,
                 notification.LawyerId,
-                notification.ScheduledAt
+                notification.ScheduledAt,
+                notification.ConsultationId
             );
         }
         catch (Exception ex)

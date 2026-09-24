@@ -50,7 +50,7 @@ public class PaymentFallbackWorker
             await _context.SaveChangesAsync();
 
             await _notificationService.SendBookingConfirmedAsync(
-                consultation.Client.UserId, consultation.Lawyer.UserId, consultation.ScheduledAt);
+                consultation.Client.UserId, consultation.Lawyer.UserId, consultation.ScheduledAt, consultation.Id);
 
             _logger.LogInformation("Consultation {Id} confirmed via fallback worker.", consultationId);
         }
