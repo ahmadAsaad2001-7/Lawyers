@@ -1237,10 +1237,16 @@ export const useChatStore = defineStore('chat', () => {
             ) {
                 clearConnectionTimeout();
 
+                const peer = pc;
+                const callId = activeCallId.value;
+
                 disconnectedTimeout =
                     setTimeout(() => {
                         if (
-                            pc?.connectionState ===
+                            pc === peer &&
+                            activeCallId.value ===
+                                callId &&
+                            peer.connectionState ===
                             'disconnected'
                         ) {
                             cleanupCall();
@@ -1433,8 +1439,13 @@ export const useChatStore = defineStore('chat', () => {
         localStream.value = null;
         remoteStream.value = null;
 
+        // close() can synchronously fire onconnectionstatechange
+        // ('disconnected' / 'closed'). A 'disconnected' event would
+        // schedule a new 8s timer after the clear above; drop it
+        // again so a later redial cannot inherit that timer.
         pc?.close();
         pc = null;
+        clearConnectionTimeout();
 
         awaitingOffer = false;
         pendingIceCandidates = [];
@@ -1479,6 +1490,8 @@ export const useChatStore = defineStore('chat', () => {
             );
             return;
         }
+
+        clearConnectionTimeout();
 
         if (
             !connection ||
@@ -1581,6 +1594,8 @@ export const useChatStore = defineStore('chat', () => {
         if (!incomingCall.value) {
             return;
         }
+
+        clearConnectionTimeout();
 
         if (
             !connection ||
