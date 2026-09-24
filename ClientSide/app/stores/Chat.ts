@@ -275,6 +275,13 @@ export const useChatStore = defineStore('chat', () => {
             );
 
             connectionStatus.value = 'connecting';
+
+            if (callState.value !== 'idle') {
+                cleanupCall();
+                setCallDiagnostic(
+                    'Call ended — connection was lost'
+                );
+            }
         });
 
         connection.onreconnected(async () => {
@@ -1014,13 +1021,6 @@ export const useChatStore = defineStore('chat', () => {
                 reconcileAgain = false;
 
                 try {
-                    if (callState.value !== 'idle') {
-                        cleanupCall();
-                        setCallDiagnostic(
-                            'Call ended — connection was lost'
-                        );
-                    }
-
                     const token =
                         lastToken ??
                         useCookie<string | null>('auth_token').value;
@@ -1098,9 +1098,6 @@ export const useChatStore = defineStore('chat', () => {
             await reconcilePromise;
         } finally {
             reconcilePromise = null;
-            if (reconcileAgain) {
-                void reconcileAfterReconnect();
-            }
         }
     };
 

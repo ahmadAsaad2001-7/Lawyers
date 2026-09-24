@@ -4,7 +4,7 @@
     <header class="bg-white border-b border-emerald-100 px-6 py-4 flex items-center justify-between shadow-sm">
       <div class="flex items-center gap-4">
         <!-- Call Buttons -->
-        <div class="flex gap-2">
+        <div v-if="canChat" class="flex gap-2">
           <button @click="startVideoCall" class="p-2 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -30,10 +30,17 @@
         </div>
       </div>
 
-      <div class="px-3 py-1 rounded-full text-sm font-medium" :class="getStatusColor(consultation?.status)">
-        {{ getStatusText(consultation?.status) }}
+      <div class="px-3 py-1 rounded-full text-sm font-medium" :class="getStatusColor(status)">
+        {{ getStatusText(status) }}
       </div>
     </header>
+
+    <div
+        v-if="!canChat && statusMessage"
+        class="border-b border-red-200 bg-red-50 px-6 py-3 text-center text-sm text-red-800"
+    >
+      ⏳ {{ statusMessage }}
+    </div>
 
     <!-- Main Chat -->
     <main class="flex-1 flex overflow-hidden">
@@ -51,16 +58,21 @@
         <div class="space-y-4 text-sm">
           <div class="flex justify-between"><span class="text-gray-500">التاريخ:</span><span class="font-medium">{{ formatDate(consultation?.scheduledAt) }}</span></div>
           <div class="flex justify-between"><span class="text-gray-500">المدة:</span><span class="font-medium">{{ consultation?.durationMinutes }} دقيقة</span></div>
-          <div class="flex justify-between"><span class="text-gray-500">الحالة:</span><span class="font-medium" :class="getStatusColor(consultation?.status)">{{ getStatusText(consultation?.status) }}</span></div>
+          <div class="flex justify-between"><span class="text-gray-500">الحالة:</span><span class="font-medium" :class="getStatusColor(status)">{{ getStatusText(status) }}</span></div>
         </div>
       </aside>
     </main>
 
     <!-- Input -->
     <footer class="bg-white border-t border-emerald-100 px-6 py-4">
-      <div class="flex items-center gap-3">
-        <textarea v-model="newMessage" @keydown.enter.exact.prevent="handleSend" placeholder="اكتب رسالتك هنا..." rows="1" class="flex-1 resize-none rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" style="font-family: 'Amiri', serif;"></textarea>
-        <button @click="handleSend" :disabled="!newMessage.trim() || !isConnected || isSending" class="px-6 py-3 bg-gradient-to-l from-amber-400 to-amber-500 text-white rounded-xl font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md">إرسال</button>
+      <template v-if="canChat">
+        <div class="flex items-center gap-3">
+          <textarea v-model="newMessage" @keydown.enter.exact.prevent="handleSend" placeholder="اكتب رسالتك هنا..." rows="1" class="flex-1 resize-none rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" style="font-family: 'Amiri', serif;"></textarea>
+          <button @click="handleSend" :disabled="!newMessage.trim() || !isConnected || isSending || !canChat" class="px-6 py-3 bg-gradient-to-l from-amber-400 to-amber-500 text-white rounded-xl font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md">إرسال</button>
+        </div>
+      </template>
+      <div v-else class="border border-gray-200 rounded-xl p-3 text-center text-sm text-gray-500">
+        🔒 الكتابة مقفلة حتى تأكيد الحجز
       </div>
     </footer>
   </div>
@@ -72,40 +84,53 @@ import { useAuthStore } from '~/stores/auth'
 import { useChatStore } from '~/stores/Chat'
 
 const route = useRoute()
-const config = useRuntimeConfig()
 const authStore = useAuthStore()
 const chatStore = useChatStore()
 
 const consultationId = computed(() => Number(route.params.id))
-const consultation = ref<any>(null)
 const newMessage = ref('')
 const isSending = ref(false)
 const messagesContainer = ref<HTMLElement | null>(null)
 
 const currentUserId = computed(() => Number(authStore.user?.userId ?? 0))
 const isConnected = computed(() => chatStore.connectionStatus === 'connected')
+const isAdmin = computed(() => authStore.user?.role === 'Admin')
 
-const fetchConsultationDetails = async (id: number) => {
-  if (!authStore.token) return
-  try {
-    consultation.value = await $fetch(`${config.public.apiBase}/consultations/${id}/details`, {
-      headers: { Authorization: `Bearer ${authStore.token}` },
-    })
-  } catch (error) {
-    console.error('Failed to fetch consultation:', error)
-  }
-}
+const consultation = computed(() =>
+    chatStore.consultations.find((c) => c.id === consultationId.value)
+)
+
+const status = computed(() => consultation.value?.status)
+
+const canChat = computed(() => {
+  if (isAdmin.value) return true
+  if (!status.value) return false
+  return ['Confirmed', 'InProgress'].includes(status.value)
+})
+
+const statusMessage = computed(() => {
+  if (isAdmin.value) return ''
+  const current = status.value
+  if (!current) return ''
+  if (current === 'Pending') return 'الدفع غير مكتمل — المحادثة تُفتح بعد تأكيد الحجز'
+  if (current === 'Cancelled') return 'تم إلغاء الحجز'
+  if (current === 'Completed') return 'انتهت الاستشارة'
+  return ''
+})
 
 const activateConsultation = async (id: number) => {
   if (!Number.isFinite(id) || id <= 0) return
 
-  await fetchConsultationDetails(id)
   await chatStore.openChat(id)
+
+  if (!consultation.value) {
+    await chatStore.syncConsultation(id)
+  }
 }
 
 const handleSend = async () => {
   const content = newMessage.value.trim()
-  if (!content || !isConnected.value || isSending.value) return
+  if (!content || isSending.value || !canChat.value) return
 
   isSending.value = true
   try {
@@ -128,7 +153,7 @@ const formatDate = (dateString: string | null) => {
   return new Date(dateString).toLocaleDateString('ar-EG')
 }
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (currentStatus?: string) => {
   const colors: Record<string, string> = {
     Pending: 'bg-yellow-100 text-yellow-800',
     Confirmed: 'bg-emerald-100 text-emerald-800',
@@ -136,10 +161,10 @@ const getStatusColor = (status: string) => {
     Completed: 'bg-gray-100 text-gray-800',
     Cancelled: 'bg-red-100 text-red-800',
   }
-  return colors[status] || 'bg-gray-100 text-gray-800'
+  return colors[currentStatus || ''] || 'bg-gray-100 text-gray-800'
 }
 
-const getStatusText = (status: string) => {
+const getStatusText = (currentStatus?: string) => {
   const texts: Record<string, string> = {
     Pending: 'قيد الانتظار',
     Confirmed: 'مؤكد',
@@ -147,7 +172,7 @@ const getStatusText = (status: string) => {
     Completed: 'مكتمل',
     Cancelled: 'ملغي',
   }
-  return texts[status] || status
+  return texts[currentStatus || ''] || currentStatus
 }
 
 const startVideoCall = () => navigateTo(`/consultations/${consultationId.value}/video`)
