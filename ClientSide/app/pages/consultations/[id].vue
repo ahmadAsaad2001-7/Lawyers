@@ -175,8 +175,8 @@ const getStatusText = (currentStatus?: string) => {
   return texts[currentStatus || ''] || currentStatus
 }
 
-const startVideoCall = () => navigateTo(`/consultations/${consultationId.value}/video`)
-const startPhoneCall = () => console.log('Start phone call')
+const startVideoCall = () => chatStore.startCall(consultationId.value, 'video')
+const startPhoneCall = () => chatStore.startCall(consultationId.value, 'audio')
 
 watch(
     () => chatStore.messages.length,
