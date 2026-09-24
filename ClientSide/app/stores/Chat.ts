@@ -1,5 +1,5 @@
 ﻿import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import * as signalR from '@microsoft/signalr';
 import type { ChatSummary, FreeInquiry } from '~/types/chat';
 import { useNotificationStore } from '~/stores/notifications';
@@ -48,6 +48,11 @@ export const useChatStore = defineStore('chat', () => {
 
     let connection: signalR.HubConnection | null = null;
     let isInitialized = false;
+    let initializePromise: Promise<void> | null = null;
+    let lastToken: string | null = null;
+    let lastIsLawyer = false;
+    let reconcilePromise: Promise<void> | null = null;
+    let reconcileAgain = false;
 
     // Live set of consultation ids we've joined the SignalR group for.
     // Used on reconnect instead of a stale closed-over array, and can
@@ -103,66 +108,107 @@ export const useChatStore = defineStore('chat', () => {
     // INITIALIZE GLOBAL CHAT / CALL INFRASTRUCTURE
     // =========================================================
 
+    const waitUntilConnected = async (timeoutMs = 20_000) => {
+        if (
+            connection &&
+            connectionStatus.value === 'connected'
+        ) {
+            return true;
+        }
+
+        if (connectionStatus.value === 'error') {
+            return false;
+        }
+
+        return new Promise<boolean>((resolve) => {
+            const stop = watch(connectionStatus, (status) => {
+                if (status === 'connected') {
+                    stop();
+                    resolve(true);
+                } else if (status === 'error') {
+                    stop();
+                    resolve(false);
+                }
+            });
+
+            setTimeout(() => {
+                stop();
+                resolve(
+                    connectionStatus.value === 'connected'
+                );
+            }, timeoutMs);
+        });
+    };
+
     const initializeGlobal = async (
         token: string,
         isLawyer: boolean
     ) => {
-        // Guard the whole init, not just the SignalR connection.
-        // Previously this would still re-fetch and re-seed `unread`
-        // (wiping out counts accumulated since first load) even
-        // though `connect()` itself was a no-op on repeat calls.
-        if (isInitialized || connection) {
+        lastToken = token;
+        lastIsLawyer = isLawyer;
+
+        if (connection && connectionStatus.value === 'connected') {
             return;
         }
 
-        isInitialized = true;
+        if (initializePromise) {
+            return initializePromise;
+        }
 
-        const base = config.public.apiBase as string;
-        const headers = {
-            Authorization: `Bearer ${token}`,
-        };
+        initializePromise = (async () => {
+            isInitialized = true;
+
+            const base = config.public.apiBase as string;
+            const headers = {
+                Authorization: `Bearer ${token}`,
+            };
+
+            try {
+                const [myChats, myInquiries] = await Promise.all([
+                    $fetch<ChatSummary[]>(
+                        `${base}/consultations/my-consultations`,
+                        { headers }
+                    ),
+
+                    isLawyer
+                        ? $fetch<FreeInquiry[]>(
+                            `${base}/consultations/free-messages`,
+                            { headers }
+                        )
+                        : Promise.resolve<FreeInquiry[]>([]),
+                ]);
+
+                consultations.value = myChats;
+                inquiries.value = myInquiries;
+
+                const unreadMap: Record<number, number> = {};
+
+                myChats.forEach((chat) => {
+                    if (chat.unreadCount && chat.unreadCount > 0) {
+                        unreadMap[chat.id] = chat.unreadCount;
+                    }
+                });
+
+                seedUnread(unreadMap);
+
+                await connect(token, myChats.map((chat) => chat.id));
+            } catch (error) {
+                console.error(
+                    '[Chat] Failed to initialize global chat/call infrastructure',
+                    error
+                );
+
+                connectionStatus.value = 'error';
+                isInitialized = false;
+            }
+        })();
 
         try {
-            const [myChats, myInquiries] = await Promise.all([
-                $fetch<ChatSummary[]>(
-                    `${base}/consultations/my-consultations`,
-                    { headers }
-                ),
-
-                isLawyer
-                    ? $fetch<FreeInquiry[]>(
-                        `${base}/consultations/free-messages`,
-                        { headers }
-                    )
-                    : Promise.resolve<FreeInquiry[]>([]),
-            ]);
-
-            consultations.value = myChats;
-            inquiries.value = myInquiries;
-
-            // Seed unread badges
-            const unreadMap: Record<number, number> = {};
-
-            myChats.forEach((chat) => {
-                if (chat.unreadCount && chat.unreadCount > 0) {
-                    unreadMap[chat.id] = chat.unreadCount;
-                }
-            });
-
-            seedUnread(unreadMap);
-
-            // Join all consultation groups
-            const consultationIds = myChats.map((chat) => chat.id);
-
-            await connect(token, consultationIds);
-        } catch (error) {
-            console.error(
-                '[Chat] Failed to initialize global chat/call infrastructure',
-                error
-            );
-
-            connectionStatus.value = 'error';
-            isInitialized = false;
+            await initializePromise;
+        } finally {
+            if (!connection) {
+                initializePromise = null;
+            }
         }
     };
 
@@ -250,6 +296,8 @@ export const useChatStore = defineStore('chat', () => {
                         );
                     });
             }
+
+            void reconcileAfterReconnect();
         });
 
         connection.onclose((error) => {
@@ -267,6 +315,15 @@ export const useChatStore = defineStore('chat', () => {
     // after the initial connect() call (e.g. a newly created chat).
     const joinConsultation = async (id: number) => {
         if (!connection) {
+            return;
+        }
+
+        if (
+            joinedConsultationIds.value.has(id) &&
+            connection.state ===
+                signalR.HubConnectionState.Connected &&
+            connectionStatus.value === 'connected'
+        ) {
             return;
         }
 
@@ -323,6 +380,8 @@ export const useChatStore = defineStore('chat', () => {
                 IsRead?: boolean
                 createdAt?: string
                 CreatedAt?: string
+                consultationId?: number | null
+                ConsultationId?: number | null
             }) => {
                 useNotificationStore().ingest({
                     id: payload.id ?? payload.Id ?? Date.now(),
@@ -334,6 +393,13 @@ export const useChatStore = defineStore('chat', () => {
                         payload.CreatedAt ??
                         new Date().toISOString(),
                 })
+
+                const consultationId = Number(
+                    payload.consultationId ?? payload.ConsultationId
+                )
+                if (Number.isFinite(consultationId) && consultationId > 0) {
+                    void syncConsultation(consultationId)
+                }
             }
         );
 
@@ -769,27 +835,271 @@ export const useChatStore = defineStore('chat', () => {
     };
 
     const openChat = async (id: number) => {
-        activeConsultationId.value = id;
         unread.value[id] = 0;
-        messages.value = [];
+
+        const token =
+            lastToken ??
+            useCookie<string | null>('auth_token').value;
+
+        if (token) {
+            await initializeGlobal(token, lastIsLawyer);
+        }
+
+        await waitUntilConnected();
+        await joinConsultation(id);
+
+        let history: ChatMessage[] = [];
 
         if (
             connection &&
-            connectionStatus.value ===
-            'connected'
+            connectionStatus.value === 'connected'
         ) {
             try {
-                messages.value =
-                    await connection.invoke(
-                        'GetRecentMessages',
-                        id,
-                        50
-                    );
+                history = await connection.invoke(
+                    'GetRecentMessages',
+                    id,
+                    50
+                );
             } catch (error) {
                 console.error(
                     '[Chat] Failed to load messages',
                     error
                 );
+            }
+        }
+
+        messages.value = history;
+        activeConsultationId.value = id;
+    };
+
+    const ensureConsultation = async (
+        summary: Partial<ChatSummary> & { id: number }
+    ) => {
+        const id = summary.id;
+        if (!Number.isFinite(id) || id <= 0) {
+            return;
+        }
+
+        const existingIndex = consultations.value.findIndex(
+            (chat) => chat.id === id
+        );
+
+        if (existingIndex >= 0) {
+            const existing = consultations.value[existingIndex];
+            const next: ChatSummary = { ...existing, id };
+            for (const [key, value] of Object.entries(summary)) {
+                if (value !== undefined) {
+                    (next as Record<string, unknown>)[key] = value;
+                }
+            }
+            consultations.value.splice(existingIndex, 1, next);
+        } else {
+            consultations.value = [
+                {
+                    id,
+                    otherUserName: summary.otherUserName ?? '',
+                    otherUserImageUrl:
+                        summary.otherUserImageUrl ?? null,
+                    otherUserRole: summary.otherUserRole ?? '',
+                    status: summary.status ?? 'Pending',
+                    scheduledAt: summary.scheduledAt ?? '',
+                    durationMinutes: summary.durationMinutes ?? 0,
+                    lastMessageContent:
+                        summary.lastMessageContent ?? null,
+                    lastMessageDate: summary.lastMessageDate ?? null,
+                    lastMessageSenderId:
+                        summary.lastMessageSenderId ?? null,
+                    isOnline: summary.isOnline ?? false,
+                    unreadCount: summary.unreadCount ?? 0,
+                },
+                ...consultations.value,
+            ];
+        }
+
+        const token =
+            lastToken ??
+            useCookie<string | null>('auth_token').value;
+
+        if (token) {
+            await initializeGlobal(token, lastIsLawyer);
+        }
+
+        await waitUntilConnected();
+        await joinConsultation(id);
+    };
+
+    const syncConsultation = async (id: number) => {
+        if (!Number.isFinite(id) || id <= 0) {
+            return;
+        }
+
+        const token =
+            lastToken ??
+            useCookie<string | null>('auth_token').value;
+
+        if (!token) {
+            return;
+        }
+
+        const base = config.public.apiBase as string;
+
+        try {
+            const details = await $fetch<{
+                consultationId: number
+                otherUserName: string
+                otherUserImageUrl: string | null
+                otherUserRole: string
+                status: string
+                scheduledAt: string
+                durationMinutes: number
+                lastMessageContent: string | null
+                lastMessageDate: string | null
+                lastMessageSenderId: number | null
+                isOnline: boolean
+            }>(`${base}/consultations/${id}/details`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            await ensureConsultation({
+                id: details.consultationId ?? id,
+                otherUserName: details.otherUserName,
+                otherUserImageUrl: details.otherUserImageUrl,
+                otherUserRole: details.otherUserRole,
+                status: details.status,
+                scheduledAt: details.scheduledAt,
+                durationMinutes: details.durationMinutes,
+                lastMessageContent: details.lastMessageContent,
+                lastMessageDate: details.lastMessageDate,
+                lastMessageSenderId: details.lastMessageSenderId,
+                isOnline: details.isOnline,
+            });
+        } catch (error) {
+            console.error(
+                `[Chat] Failed to sync consultation ${id}`,
+                error
+            );
+        }
+    };
+
+    const mergeRecentMessages = (incoming: ChatMessage[]) => {
+        const byId = new Map<number, ChatMessage>();
+
+        for (const msg of messages.value) {
+            if (Number.isFinite(msg.id) && msg.id > 0) {
+                byId.set(msg.id, msg);
+            }
+        }
+
+        for (const msg of incoming) {
+            if (Number.isFinite(msg.id) && msg.id > 0) {
+                byId.set(msg.id, msg);
+            }
+        }
+
+        messages.value = Array.from(byId.values()).sort((a, b) => {
+            const aTime = new Date(a.createdAt).getTime();
+            const bTime = new Date(b.createdAt).getTime();
+            return aTime - bTime;
+        });
+    };
+
+    const reconcileAfterReconnect = async () => {
+        if (reconcilePromise) {
+            reconcileAgain = true;
+            return reconcilePromise;
+        }
+
+        reconcilePromise = (async () => {
+            do {
+                reconcileAgain = false;
+
+                try {
+                    if (callState.value !== 'idle') {
+                        cleanupCall();
+                        setCallDiagnostic(
+                            'Call ended — connection was lost'
+                        );
+                    }
+
+                    const token =
+                        lastToken ??
+                        useCookie<string | null>('auth_token').value;
+
+                    if (token) {
+                        try {
+                            const base = config.public.apiBase as string;
+                            const myChats = await $fetch<ChatSummary[]>(
+                                `${base}/consultations/my-consultations`,
+                                {
+                                    headers: {
+                                        Authorization: `Bearer ${token}`,
+                                    },
+                                }
+                            );
+
+                            const unreadMap: Record<number, number> = {
+                                ...unread.value,
+                            };
+
+                            for (const chat of myChats) {
+                                await ensureConsultation(chat);
+
+                                if (
+                                    chat.id ===
+                                    activeConsultationId.value
+                                ) {
+                                    unreadMap[chat.id] = 0;
+                                } else if (
+                                    typeof chat.unreadCount === 'number'
+                                ) {
+                                    unreadMap[chat.id] = chat.unreadCount;
+                                }
+                            }
+
+                            seedUnread(unreadMap);
+                        } catch (error) {
+                            console.error(
+                                '[Chat] Failed to reconcile consultations after reconnect',
+                                error
+                            );
+                        }
+                    }
+
+                    const activeId = activeConsultationId.value;
+
+                    if (
+                        activeId &&
+                        connection &&
+                        connectionStatus.value === 'connected'
+                    ) {
+                        try {
+                            const history = await connection.invoke<
+                                ChatMessage[]
+                            >('GetRecentMessages', activeId, 50);
+
+                            mergeRecentMessages(history ?? []);
+                        } catch (error) {
+                            console.error(
+                                '[Chat] Failed to reconcile messages after reconnect',
+                                error
+                            );
+                        }
+                    }
+                } catch (error) {
+                    console.error(
+                        '[Chat] Failed to reconcile after reconnect',
+                        error
+                    );
+                }
+            } while (reconcileAgain);
+        })();
+
+        try {
+            await reconcilePromise;
+        } finally {
+            reconcilePromise = null;
+            if (reconcileAgain) {
+                void reconcileAfterReconnect();
             }
         }
     };
@@ -1436,6 +1746,9 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         isInitialized = false;
+        initializePromise = null;
+        lastToken = null;
+        lastIsLawyer = false;
         joinedConsultationIds.value = new Set();
 
         connectionStatus.value =
@@ -1478,6 +1791,8 @@ export const useChatStore = defineStore('chat', () => {
         connect,
         disconnect,
         joinConsultation,
+        ensureConsultation,
+        syncConsultation,
 
         // Chat actions
         openChat,

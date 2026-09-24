@@ -16,25 +16,25 @@ public class SignalRNotificationService : INotificationService
         _unitOfWork = unitOfWork;
     }
 
-    public async Task SendBookingConfirmedAsync(int clientId, int lawyerId, DateTime scheduledAt)
+    public async Task SendBookingConfirmedAsync(int clientId, int lawyerId, DateTime scheduledAt, int consultationId)
     {
         var when = scheduledAt.ToString("dd/MM/yyyy hh:mm tt");
-        await NotifyAsync(clientId, "تم تأكيد الحجز", $"تم تأكيد استشارتك في {when}");
-        await NotifyAsync(lawyerId, "حجز جديد", $"لديك استشارة جديدة في {when}");
+        await NotifyAsync(clientId, "تم تأكيد الحجز", $"تم تأكيد استشارتك في {when}", consultationId: consultationId);
+        await NotifyAsync(lawyerId, "حجز جديد", $"لديك استشارة جديدة في {when}", consultationId: consultationId);
     }
 
-    public Task SendNewBookingAsync(int clientId, int lawyerId, DateTime scheduledAt)
+    public Task SendNewBookingAsync(int clientId, int lawyerId, DateTime scheduledAt, int consultationId)
     {
         _ = clientId;
         var when = scheduledAt.ToString("dd/MM/yyyy hh:mm tt");
         return NotifyAsync(lawyerId, "طلب حجز جديد",
-            $"لديك طلب حجز جديد في {when} بانتظار تأكيد الدفع");
+            $"لديك طلب حجز جديد في {when} بانتظار تأكيد الدفع", consultationId: consultationId);
     }
 
     public Task SendGenericNotificationAsync(int recipientUserId, string title, string message)
         => NotifyAsync(recipientUserId, title, message);
 
-    public async Task NotifyAsync(int recipientUserId, string title, string message, CancellationToken ct = default)
+    public async Task NotifyAsync(int recipientUserId, string title, string message, CancellationToken ct = default, int? consultationId = null)
     {
         var notification = new PlatformNotification
         {
@@ -57,7 +57,8 @@ public class SignalRNotificationService : INotificationService
                     notification.Title,
                     notification.Message,
                     notification.IsRead,
-                    notification.CreatedAt
+                    notification.CreatedAt,
+                    ConsultationId = consultationId
                 }, ct);
         }
         catch

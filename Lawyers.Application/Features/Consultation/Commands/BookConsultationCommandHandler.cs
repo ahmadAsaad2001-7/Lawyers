@@ -87,7 +87,7 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
             await _notificationService.SendBookingConfirmedAsync(
-                clientProfile.UserId, lawyer.UserId, adminConsultation.ScheduledAt);
+                clientProfile.UserId, lawyer.UserId, adminConsultation.ScheduledAt, adminConsultation.Id);
 
             return new BookingResponseDto
             {
@@ -161,7 +161,7 @@ public class BookConsultationCommandHandler : IRequestHandler<BookConsultationCo
         }
 
         await _notificationService.SendNewBookingAsync(
-            clientProfile.UserId, lawyer.UserId, consultation.ScheduledAt);
+            clientProfile.UserId, lawyer.UserId, consultation.ScheduledAt, consultation.Id);
 
         return new BookingResponseDto
         {

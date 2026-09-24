@@ -38,8 +38,8 @@
     <!-- Main Chat -->
     <main class="flex-1 flex overflow-hidden">
       <div class="flex-1 overflow-y-auto p-6 space-y-4" ref="messagesContainer">
-        <div v-for="message in messages" :key="message.id" class="flex" :class="message.isMine ? 'justify-start' : 'justify-end'">
-          <div class="max-w-[70%] px-4 py-2 rounded-2xl shadow-sm" :class="message.isMine ? 'bg-gradient-to-l from-emerald-700 to-emerald-800 text-white rounded-br-sm' : 'bg-white text-gray-800 border border-emerald-100 rounded-bl-sm'">
+        <div v-for="message in chatStore.messages" :key="message.id" class="flex" :class="message.senderId === currentUserId ? 'justify-start' : 'justify-end'">
+          <div class="max-w-[70%] px-4 py-2 rounded-2xl shadow-sm" :class="message.senderId === currentUserId ? 'bg-gradient-to-l from-emerald-700 to-emerald-800 text-white rounded-br-sm' : 'bg-white text-gray-800 border border-emerald-100 rounded-bl-sm'">
             <p class="text-sm">{{ message.content }}</p>
             <p class="text-xs mt-1 opacity-70">{{ formatTime(message.createdAt) }}</p>
           </div>
@@ -59,98 +59,65 @@
     <!-- Input -->
     <footer class="bg-white border-t border-emerald-100 px-6 py-4">
       <div class="flex items-center gap-3">
-        <textarea v-model="newMessage" @keydown.enter.exact.prevent="sendMessage" placeholder="اكتب رسالتك هنا..." rows="1" class="flex-1 resize-none rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" style="font-family: 'Amiri', serif;"></textarea>
-        <button @click="sendMessage" :disabled="!newMessage.trim() || !isConnected" class="px-6 py-3 bg-gradient-to-l from-amber-400 to-amber-500 text-white rounded-xl font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md">إرسال</button>
+        <textarea v-model="newMessage" @keydown.enter.exact.prevent="handleSend" placeholder="اكتب رسالتك هنا..." rows="1" class="flex-1 resize-none rounded-xl border border-emerald-200 bg-emerald-50/50 px-4 py-3 text-sm focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20" style="font-family: 'Amiri', serif;"></textarea>
+        <button @click="handleSend" :disabled="!newMessage.trim() || !isConnected || isSending" class="px-6 py-3 bg-gradient-to-l from-amber-400 to-amber-500 text-white rounded-xl font-medium hover:from-amber-500 hover:to-amber-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md">إرسال</button>
       </div>
     </footer>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
-import * as signalR from '@microsoft/signalr'
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
+import { useAuthStore } from '~/stores/auth'
+import { useChatStore } from '~/stores/Chat'
 
 const route = useRoute()
 const config = useRuntimeConfig()
-const authCookie = useCookie('auth_token')
+const authStore = useAuthStore()
+const chatStore = useChatStore()
 
-const consultationId = Number(route.params.id)
+const consultationId = computed(() => Number(route.params.id))
 const consultation = ref<any>(null)
-const messages = ref<any[]>([])
 const newMessage = ref('')
-const isConnected = ref(false)
+const isSending = ref(false)
 const messagesContainer = ref<HTMLElement | null>(null)
 
-let connection: signalR.HubConnection | null = null
+const currentUserId = computed(() => Number(authStore.user?.userId ?? 0))
+const isConnected = computed(() => chatStore.connectionStatus === 'connected')
 
-// Fetch consultation
-const fetchConsultationDetails = async () => {
+const fetchConsultationDetails = async (id: number) => {
+  if (!authStore.token) return
   try {
-    const { data } = await useFetch(`${config.public.apiBase}/consultations/${consultationId}/details`, {
-      headers: { Authorization: `Bearer ${authCookie.value}` },
+    consultation.value = await $fetch(`${config.public.apiBase}/consultations/${id}/details`, {
+      headers: { Authorization: `Bearer ${authStore.token}` },
     })
-    consultation.value = data.value
   } catch (error) {
     console.error('Failed to fetch consultation:', error)
   }
 }
 
-// Connect to SignalR
-const connectToChat = async () => {
-  if (!authCookie.value) return
+const activateConsultation = async (id: number) => {
+  if (!Number.isFinite(id) || id <= 0) return
 
-  connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${config.public.apiBase.replace('/api', '')}/hubs/consultations`, {
-        accessTokenFactory: () => authCookie.value || '',
-      })
-      .withAutomaticReconnect()
-      .build()
-
-  // Handle incoming messages
-  connection.on('ReceiveMessage', (message) => {
-    const isMine = message.senderId === Number(useCookie('user_id').value)
-    messages.value.push({
-      id: message.id,
-      content: message.content,
-      createdAt: message.createdAt,
-      isMine,
-    })
-  })
-
-  try {
-    await connection.start()
-    isConnected.value = true
-
-    // Join consultation room
-    await connection.invoke('JoinConsultation', consultationId)
-  } catch (err) {
-    console.error('SignalR connection failed:', err)
-  }
+  await fetchConsultationDetails(id)
+  await chatStore.openChat(id)
 }
 
-// Send message
-const sendMessage = async () => {
-  if (!newMessage.value.trim() || !connection || !isConnected) return
-
+const handleSend = async () => {
   const content = newMessage.value.trim()
-  newMessage.value = ''
+  if (!content || !isConnected.value || isSending.value) return
 
+  isSending.value = true
   try {
-    await connection.invoke('SendMessage', consultationId, content)
-
-    // Optimistically add to UI
-    messages.value.push({
-      id: Date.now(),
-      content,
-      createdAt: new Date().toISOString(),
-      isMine: true,
-    })
+    await chatStore.sendMessage(consultationId.value, content)
+    newMessage.value = ''
   } catch (err) {
     console.error('Failed to send message:', err)
+  } finally {
+    isSending.value = false
   }
 }
 
-// Formatters
 const formatTime = (dateString: string | null) => {
   if (!dateString) return ''
   return new Date(dateString).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
@@ -183,27 +150,25 @@ const getStatusText = (status: string) => {
   return texts[status] || status
 }
 
-const startVideoCall = () => navigateTo(`/consultations/${consultationId}/video`)
+const startVideoCall = () => navigateTo(`/consultations/${consultationId.value}/video`)
 const startPhoneCall = () => console.log('Start phone call')
 
-// Auto-scroll
-watch(() => messages.value.length, () => {
-  nextTick(() => {
-    if (messagesContainer.value) {
-      messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+watch(
+    () => chatStore.messages.length,
+    () => {
+      nextTick(() => {
+        if (messagesContainer.value) {
+          messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+        }
+      })
     }
-  })
-})
+)
 
-// Lifecycle
-onMounted(async () => {
-  await fetchConsultationDetails()
-  await connectToChat()
-})
+watch(consultationId, (id) => activateConsultation(id), { immediate: true })
 
 onUnmounted(() => {
-  if (connection) {
-    connection.stop()
+  if (chatStore.activeConsultationId === consultationId.value) {
+    chatStore.activeConsultationId = null
   }
 })
 </script>
