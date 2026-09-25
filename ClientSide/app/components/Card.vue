@@ -107,17 +107,17 @@ const handleBooked = (response: {
         <p class="text-xs text-gray-500 mt-0.5">{{ lawyer.city || lawyer.state }}</p>
       </div>
 
-      <div class="grid grid-cols-3 gap-2 w-full pt-2 text-xs">
-        <nuxt-link :to="`/lawyers/${lawyer.id}`" class="bg-emerald-800 text-white py-2 rounded-lg hover:bg-emerald-900 transition-colors text-center">
+      <div class="grid w-full grid-cols-3 gap-1.5 pt-2 text-[11px] sm:gap-2 sm:text-xs">
+        <nuxt-link :to="`/lawyers/${lawyer.id}`" class="min-h-10 rounded-lg bg-emerald-800 px-1 py-2.5 text-center leading-tight text-white transition-colors hover:bg-emerald-900">
           الملف الشخصي
         </nuxt-link>
         <button
             @click="isBookingModelOpen = true"
-            class="bg-amber-400 text-emerald-950 font-semibold py-2 rounded-lg hover:bg-amber-300 transition-colors"
+            class="min-h-10 rounded-lg bg-amber-400 px-1 py-2.5 font-semibold leading-tight text-emerald-950 transition-colors hover:bg-amber-300"
         >
           توظيف
         </button>
-        <nuxt-link :to="`/consultations/FreeMessage/${lawyer.id}`" class="bg-emerald-800 text-white py-2 rounded-lg hover:bg-emerald-900 transition-colors text-center">
+        <nuxt-link :to="`/consultations/FreeMessage/${lawyer.id}`" class="min-h-10 rounded-lg bg-emerald-800 px-1 py-2.5 text-center leading-tight text-white transition-colors hover:bg-emerald-900">
           محادثة
         </nuxt-link>
       </div>

@@ -1,7 +1,7 @@
 ﻿<template>
   <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8" dir="rtl">
-    <form @submit.prevent="handleSubmit" class="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-lg border border-emerald-100">
-      <h2 class="text-center text-3xl font-bold tracking-tight text-emerald-900" style="font-family: 'Amiri', serif;">
+    <form @submit.prevent="handleSubmit" class="w-full max-w-md space-y-6 rounded-2xl border border-emerald-100 bg-white p-6 shadow-lg sm:p-8">
+      <h2 class="text-center text-2xl font-bold tracking-tight text-emerald-900 sm:text-3xl" style="font-family: 'Amiri', serif;">
         تسجيل الددخول
       </h2>
 
@@ -45,7 +45,7 @@
       <button
           type="submit"
           :disabled="authStore.isLoading"
-          class="flex min-h-[48px] w-full items-center justify-center rounded-lg bg-gradient-to-l from-emerald-800 to-emerald-900 p-3 text-base font-semibold text-white transition-all duration-200 hover:from-emerald-900 hover:to-emerald-950 disabled:cursor-not-allowed disabled:opacity-70"
+          class="flex min-h-12 w-full items-center justify-center rounded-lg bg-gradient-to-l from-emerald-800 to-emerald-900 p-3 text-base font-semibold text-white transition-all duration-200 hover:from-emerald-900 hover:to-emerald-950 disabled:cursor-not-allowed disabled:opacity-70"
       >
         <span v-if="authStore.isLoading" class="h-5 w-5 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
         <span v-else>دخول</span>

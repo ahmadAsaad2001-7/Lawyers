@@ -84,7 +84,7 @@ const handleReplySent = (inquiryId: number) => {
 </script>
 
 <template>
-  <div dir="rtl" class="mx-auto h-[calc(100vh-4rem)] max-w-7xl p-4">
+  <div dir="rtl" class="mx-auto h-[calc(100dvh-8rem)] max-w-7xl overflow-hidden p-2 sm:h-[calc(100vh-4rem)] sm:p-4">
     <div class="flex h-full w-full overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
       <!-- Sidebar: hidden on mobile once a chat/inquiry is open, so the
            thread gets the full screen instead of squeezing next to it -->

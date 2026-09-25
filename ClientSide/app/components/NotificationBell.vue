@@ -102,7 +102,7 @@ defineExpose({ close })
 
     <div
         v-if="isOpen"
-        class="absolute end-0 z-40 mt-2 w-80 overflow-hidden rounded-xl border border-gray-100 bg-white text-sm shadow-xl"
+        class="absolute end-0 z-40 mt-2 w-[min(20rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-gray-100 bg-white text-sm shadow-xl"
         dir="rtl"
     >
       <div class="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">

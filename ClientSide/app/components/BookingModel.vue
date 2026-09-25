@@ -305,14 +305,14 @@ const handleClose = () => {
           <!-- Header -->
           <div class="p-5 border-b border-gray-100 bg-emerald-50/40 flex items-center gap-3">
             <img :src="lawyer.avatar" :alt="lawyer.name" class="w-12 h-12 rounded-full object-cover border-2 border-amber-400" />
-            <div class="flex-1">
-              <h2 class="font-bold text-emerald-950 text-base" style="font-family: 'Amiri', serif;">حجز استشارة</h2>
-              <p class="text-xs text-gray-500 mt-0.5">مع {{ lawyer.name }} — {{ lawyer.hourlyRate }} ج.م/ساعة</p>
+            <div class="min-w-0 flex-1">
+              <h2 class="truncate font-bold text-emerald-950 text-base" style="font-family: 'Amiri', serif;">حجز استشارة</h2>
+              <p class="truncate text-xs text-gray-500 mt-0.5">مع {{ lawyer.name }} — {{ lawyer.hourlyRate }} ج.م/ساعة</p>
             </div>
             <button
                 @click="handleClose"
                 :disabled="isSubmitting"
-                class="text-gray-400 hover:text-gray-600 p-1 disabled:opacity-30"
+                class="min-h-10 min-w-10 p-2 text-gray-400 hover:text-gray-600 disabled:opacity-30"
                 aria-label="إغلاق"
             >
               <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
@@ -325,11 +325,11 @@ const handleClose = () => {
             <!-- ══ STEP 1: Calendar with Available/Unavailable Days ═══ -->
             <div>
               <div class="flex items-center justify-between mb-3">
-                <button type="button" @click="prevMonth" class="p-1 rounded-lg text-gray-500 hover:bg-gray-100">
+                <button type="button" @click="prevMonth" class="min-h-10 min-w-10 rounded-lg p-2 text-gray-500 hover:bg-gray-100">
                   <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
                 </button>
                 <span class="text-sm font-bold text-emerald-900">{{ monthLabel }}</span>
-                <button type="button" @click="nextMonth" class="p-1 rounded-lg text-gray-500 hover:bg-gray-100">
+                <button type="button" @click="nextMonth" class="min-h-10 min-w-10 rounded-lg p-2 text-gray-500 hover:bg-gray-100">
                   <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
                 </button>
               </div>
@@ -347,7 +347,7 @@ const handleClose = () => {
                     type="button"
                     @click="selectDate(day)"
                     :disabled="!availableDays.includes(day)"
-                    class="py-2 rounded-lg text-xs font-medium border transition-all"
+                    class="min-h-10 rounded-lg border py-2 text-xs font-medium transition-all"
                     :class="
                     selectedDate === `${viewMonth.getFullYear()}-${pad(viewMonth.getMonth() + 1)}-${pad(day)}`
                       ? 'bg-sky-600 text-white border-sky-600 shadow-md'
@@ -387,14 +387,14 @@ const handleClose = () => {
                 لا توجد ساعات متاحة لهذا اليوم
               </div>
 
-              <div v-else class="grid grid-cols-6 gap-1.5">
+              <div v-else class="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
                 <button
                     v-for="h in 24"
                     :key="h"
                     type="button"
                     :disabled="!availableHours.includes(h - 1)"
                     @click="toggleHour(h - 1)"
-                    class="py-2 rounded-lg text-xs font-medium border transition-colors"
+                    class="min-h-10 rounded-lg border py-2 text-xs font-medium transition-colors"
                     :class="[
                     selectedHours.includes(h - 1)
                       ? 'bg-emerald-700 text-white border-emerald-700 shadow-md'
@@ -422,7 +422,7 @@ const handleClose = () => {
                     :key="ch.id"
                     type="button"
                     @click="selectedChannel = ch.id"
-                    class="text-xs py-2 px-1 rounded-xl border flex flex-col items-center gap-1 transition-colors disabled:opacity-50"
+                    class="flex min-h-11 flex-col items-center gap-1 rounded-xl border px-1 py-2.5 text-xs transition-colors disabled:opacity-50"
                     :class="selectedChannel === ch.id
                     ? 'bg-emerald-800 text-white border-emerald-800'
                     : 'bg-white text-gray-700 border-gray-200 hover:border-emerald-300'"
