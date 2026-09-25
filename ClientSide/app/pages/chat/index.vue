@@ -59,7 +59,7 @@ onUnmounted(() => {
 const clearSelection = () => {
   activeChatId.value = null;
   activeInquiryId.value = null;
-  chatStore.activeConsultationId = null;
+  void chatStore.clearActiveConsultation();
 };
 
 const selectChat = (id: number) => {
@@ -74,7 +74,7 @@ const selectInquiry = (id: number) => {
   // Leaving the chat view entirely — make sure the store stops
   // treating any previous chat as "active" so its unread counter
   // resumes incrementing instead of silently swallowing messages.
-  chatStore.activeConsultationId = null;
+  void chatStore.clearActiveConsultation();
 };
 
 const handleReplySent = (inquiryId: number) => {
@@ -84,7 +84,7 @@ const handleReplySent = (inquiryId: number) => {
 </script>
 
 <template>
-  <div dir="rtl" class="mx-auto h-[calc(100vh-4rem)] max-w-7xl p-4">
+  <div dir="rtl" class="mx-auto h-[calc(100dvh-8rem)] max-w-7xl overflow-hidden p-2 sm:h-[calc(100vh-4rem)] sm:p-4">
     <div class="flex h-full w-full overflow-hidden rounded-2xl border border-emerald-900/10 bg-white shadow-sm">
       <!-- Sidebar: hidden on mobile once a chat/inquiry is open, so the
            thread gets the full screen instead of squeezing next to it -->

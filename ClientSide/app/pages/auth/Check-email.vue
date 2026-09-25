@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4" dir="rtl">
-    <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg border border-emerald-100 text-center">
+    <div class="w-full max-w-md rounded-2xl border border-emerald-100 bg-white p-6 text-center shadow-lg sm:p-8">
       <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />

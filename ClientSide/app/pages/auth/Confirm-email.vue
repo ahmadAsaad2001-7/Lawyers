@@ -1,6 +1,6 @@
 ﻿<template>
   <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4" dir="rtl">
-    <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg border border-emerald-100 text-center">
+    <div class="w-full max-w-md rounded-2xl border border-emerald-100 bg-white p-6 text-center shadow-lg sm:p-8">
 
       <!-- Loading State -->
       <div v-if="status === 'loading'">

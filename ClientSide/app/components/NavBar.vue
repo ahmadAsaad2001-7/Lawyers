@@ -56,7 +56,7 @@ watch(() => route.path, closeMenus);
     <!-- Gold top accent bar -->
     <div class="absolute inset-x-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400"></div>
 
-    <div class="mx-auto max-w-7xl px-6 py-4">
+    <div class="mx-auto max-w-7xl px-4 py-4 sm:px-6">
       <div class="flex items-center justify-between">
 
         <!-- Logo -->

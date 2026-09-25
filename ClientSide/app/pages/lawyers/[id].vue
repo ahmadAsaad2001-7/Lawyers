@@ -214,7 +214,7 @@ const handleBooked = (response: any) => {
     <main class="lg:col-span-3 space-y-6">
 
       <!-- Section Header -->
-      <div class="bg-white rounded-2xl p-6 border border-emerald-900/10 shadow-sm flex items-center justify-between">
+      <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-900/10 bg-white p-4 shadow-sm sm:p-6">
         <div>
           <h2 class="text-xl font-bold text-emerald-950" style="font-family: 'Amiri', serif;">
             المنشورات والإنجازات

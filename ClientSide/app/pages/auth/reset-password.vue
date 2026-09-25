@@ -2,7 +2,7 @@
   <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8" dir="rtl">
     <form
         @submit.prevent="handleSubmit"
-        class="w-full max-w-md space-y-6 rounded-2xl bg-white p-8 shadow-lg border border-emerald-100"
+        class="w-full max-w-md space-y-6 rounded-2xl border border-emerald-100 bg-white p-6 shadow-lg sm:p-8"
     >
       <div class="text-center">
         <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
@@ -10,7 +10,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
           </svg>
         </div>
-        <h2 class="text-3xl font-bold tracking-tight text-emerald-900" style="font-family: 'Amiri', serif;">
+        <h2 class="text-2xl font-bold tracking-tight text-emerald-900 sm:text-3xl" style="font-family: 'Amiri', serif;">
           إعادة تعيين كلمة المرور
         </h2>
         <p class="mt-2 text-sm text-gray-600">

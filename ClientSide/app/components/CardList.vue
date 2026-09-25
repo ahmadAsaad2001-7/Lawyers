@@ -44,7 +44,7 @@ onMounted(() => {
       <button
           :disabled="store.currentPage === 1"
           @click="store.fetchLawyers(store.currentPage - 1)"
-          class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 hover:bg-emerald-50 text-emerald-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="min-h-10 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-emerald-900 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         السابق
       </button>
@@ -56,7 +56,7 @@ onMounted(() => {
       <button
           :disabled="store.currentPage === store.totalPages"
           @click="store.fetchLawyers(store.currentPage + 1)"
-          class="px-4 py-2 text-sm font-medium rounded-lg border border-gray-200 hover:bg-emerald-50 text-emerald-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          class="min-h-10 rounded-lg border border-gray-200 px-4 py-2 text-sm font-medium text-emerald-900 transition-colors hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-50"
       >
         التالي
       </button>

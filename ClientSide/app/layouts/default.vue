@@ -7,7 +7,7 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <NavBar />
-    <main class="container mx-auto px-6 py-8">
+    <main class="container mx-auto px-3 py-4 sm:px-6 sm:py-8">
       <slot />
     </main>
   </div>

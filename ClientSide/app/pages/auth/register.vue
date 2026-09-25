@@ -1,7 +1,7 @@
 <template>
   <div class="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8" dir="rtl">
-    <form @submit.prevent="handleSubmit" class="w-full max-w-md space-y-5 rounded-2xl bg-white p-8 shadow-lg border border-emerald-100">
-      <h2 class="text-center text-3xl font-bold tracking-tight text-emerald-900" style="font-family: 'Amiri', serif;">
+    <form @submit.prevent="handleSubmit" class="w-full max-w-md space-y-5 rounded-2xl border border-emerald-100 bg-white p-6 shadow-lg sm:p-8">
+      <h2 class="text-center text-2xl font-bold tracking-tight text-emerald-900 sm:text-3xl" style="font-family: 'Amiri', serif;">
         إنشاء حساب جديد
       </h2>
 

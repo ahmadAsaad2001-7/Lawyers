@@ -90,13 +90,13 @@ const formatTime = (dateString: string) => {
 <template>
   <div class="relative flex h-full flex-col bg-white">
     <!-- Header -->
-    <div class="border-b border-gray-100 bg-emerald-50/30 p-4">
+    <div class="border-b border-gray-100 bg-emerald-50/30 p-3 sm:p-4">
       <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-full bg-emerald-200 flex items-center justify-center text-emerald-800 font-bold">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-800">
           {{ consultation?.otherUserName?.charAt(0) || 'م' }}
         </div>
-        <div class="flex-1">
-          <h3 class="font-bold text-emerald-950 text-sm">
+        <div class="min-w-0 flex-1">
+          <h3 class="truncate text-sm font-bold text-emerald-950">
             {{ consultation?.otherUserName || 'جاري التحميل...' }}
           </h3>
           <span
@@ -112,7 +112,7 @@ const formatTime = (dateString: string) => {
           <button
               v-if="canChat"
               @click="isCallMenuOpen = !isCallMenuOpen"
-              class="p-2 rounded-xl bg-emerald-800 text-white hover:bg-emerald-900 transition-colors"
+              class="min-h-10 min-w-10 rounded-xl bg-emerald-800 p-2.5 text-white transition-colors hover:bg-emerald-900"
               aria-label="بدء مكالمة"
           >
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,9 +166,9 @@ const formatTime = (dateString: string) => {
     </div>
 
     <!-- Input Area -->
-    <div class="border-t border-gray-100 bg-white p-4">
+    <div class="border-t border-gray-100 bg-white p-3 sm:p-4">
       <template v-if="canChat">
-        <div class="flex gap-2 items-end">
+        <div class="flex items-end gap-2">
           <textarea
               v-model="newMessage"
               @keydown.enter.exact.prevent="handleSend"
@@ -182,7 +182,7 @@ const formatTime = (dateString: string) => {
           <button
               @click="handleSend"
               :disabled="!newMessage.trim() || isSending"
-              class="shrink-0 rounded-xl bg-emerald-800 p-3 text-white transition-colors hover:bg-emerald-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              class="min-h-11 min-w-11 shrink-0 rounded-xl bg-emerald-800 p-3 text-white transition-colors hover:bg-emerald-900 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg v-if="!isSending" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform rotate-180" viewBox="0 0 20 20" fill="currentColor">
               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />

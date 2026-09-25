@@ -77,7 +77,7 @@ onMounted(async () => {
       <div
           v-for="c in consultations"
           :key="c.id"
-          class="border border-gray-100 rounded-xl p-4 flex items-center justify-between hover:shadow-sm transition-shadow"
+          class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-gray-100 p-4 hover:shadow-sm transition-shadow"
       >
         <div>
           <p class="font-medium text-gray-900">{{ c.otherUserName }}</p>

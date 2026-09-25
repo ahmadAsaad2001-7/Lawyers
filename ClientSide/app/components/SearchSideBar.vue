@@ -74,7 +74,7 @@ const applyFilters = () => {
 
     <button
         @click="applyFilters"
-        class="w-full bg-emerald-800 text-white font-medium py-2 rounded-lg hover:bg-emerald-900 transition-colors text-sm mt-2"
+        class="mt-2 min-h-11 w-full rounded-lg bg-emerald-800 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-900"
     >
       تطبيق الفلتر
     </button>

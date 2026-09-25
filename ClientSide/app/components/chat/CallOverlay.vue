@@ -114,7 +114,7 @@ watch(
         muted
         playsinline
         v-show="store.callState === 'in-call' && store.callMode === 'video' && !store.isCameraOff && !!store.localStream"
-        class="fixed bottom-24 start-4 z-40 h-28 w-40 rounded-xl border-2 border-white/30 object-cover shadow-lg"
+        class="fixed bottom-24 start-4 z-40 h-20 w-28 rounded-xl border-2 border-white/30 object-cover shadow-lg sm:h-28 sm:w-40"
     ></video>
 
     <!-- Audio element used ONLY for audio-only calls -->
@@ -142,13 +142,13 @@ watch(
 
     <!-- ═══ Incoming call dialog ═══ -->
     <div v-if="store.callState === 'incoming' && store.incomingCall" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-      <div class="w-80 rounded-2xl bg-white p-8 text-center shadow-xl" dir="rtl">
+      <div class="mx-4 w-full max-w-80 rounded-2xl bg-white p-6 text-center shadow-xl sm:p-8" dir="rtl">
         <div class="mb-3 text-4xl">{{ store.incomingCall.mode === 'video' ? '🎥' : '🎙️' }}</div>
         <h3 class="mb-1 font-bold text-emerald-950">مكالمة واردة</h3>
         <p class="mb-6 text-sm text-gray-500">{{ store.incomingCall.mode === 'video' ? 'مكالمة فيديو' : 'مكالمة صوتية' }}</p>
         <div class="flex justify-center gap-3">
-          <button @click="store.acceptCall()" class="rounded-xl bg-green-600 px-6 py-2.5 font-semibold text-white hover:bg-green-700">رد</button>
-          <button @click="store.rejectCall()" class="rounded-xl bg-red-600 px-6 py-2.5 font-semibold text-white hover:bg-red-700">رفض</button>
+          <button @click="store.acceptCall()" class="min-h-11 rounded-xl bg-green-600 px-6 py-3 font-semibold text-white hover:bg-green-700">رد</button>
+          <button @click="store.rejectCall()" class="min-h-11 rounded-xl bg-red-600 px-6 py-3 font-semibold text-white hover:bg-red-700">رفض</button>
         </div>
       </div>
     </div>
@@ -169,7 +169,7 @@ watch(
     </div>
 
     <!-- ═══ In-call controls ═══ -->
-    <div v-show="store.callState === 'in-call'" class="fixed inset-x-0 bottom-0 z-50 flex items-center justify-center gap-4 bg-black/40 py-5">
+    <div v-show="store.callState === 'in-call'" class="fixed inset-x-0 bottom-0 z-50 flex items-center justify-center gap-3 bg-black/40 py-4 sm:gap-4 sm:py-5">
       <button @click="store.toggleMute()" class="rounded-full p-4 text-white" :class="store.isMuted ? 'bg-red-600' : 'bg-white/20 hover:bg-white/30'">
         {{ store.isMuted ? '🔇' : '🎤' }}
       </button>

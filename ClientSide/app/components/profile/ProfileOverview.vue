@@ -70,7 +70,7 @@ const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('ar
         <div v-if="pending" class="text-center py-4 text-gray-400">جاري التحميل...</div>
         <div v-else-if="!overview?.upcomingConsultations?.length" class="text-center py-4 text-gray-400 text-sm">لا توجد استشارات قادمة</div>
         <ul v-else class="space-y-3">
-          <li v-for="c in overview.upcomingConsultations" :key="c.id" class="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+          <li v-for="c in overview.upcomingConsultations" :key="c.id" class="flex flex-col gap-2 rounded-xl bg-gray-50 p-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p class="font-medium text-gray-800 text-sm">{{ c.otherPartyName }}</p>
               <p class="text-xs text-gray-500 mt-0.5">
@@ -81,7 +81,7 @@ const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString('ar
             </div>
             <NuxtLink
                 :to="`/consultations/${c.id}`"
-                class="px-3 py-1.5 bg-emerald-800 text-white text-xs font-medium rounded-lg hover:bg-emerald-900 transition-colors"
+                class="min-h-10 shrink-0 rounded-lg bg-emerald-800 px-3 py-2 text-center text-xs font-medium text-white transition-colors hover:bg-emerald-900"
             >
               دخول
             </NuxtLink>
